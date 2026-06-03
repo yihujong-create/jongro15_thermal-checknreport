@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 # ── 폰트 검색 (시스템에 설치된 한글 폰트 사용) ─────────────
 _FONT_DIRS_KR = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DroidSansFallback.ttf"),
     "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf",
     "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
     "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
@@ -18,10 +19,12 @@ _FONT_DIRS_KR = [
     "C:/Windows/Fonts/NanumGothic.ttf",
 ]
 _FONT_DIRS_LATIN = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DejaVuSans.ttf"),
     "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
     "C:/Windows/Fonts/arial.ttf",
 ]
 _FONT_DIRS_LATIN_B = [
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DejaVuSans-Bold.ttf"),
     "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
     "C:/Windows/Fonts/arialbd.ttf",
 ]

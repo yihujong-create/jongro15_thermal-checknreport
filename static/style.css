@@ -29,25 +29,26 @@ body {
 }
 
 header {
-    background: linear-gradient(135deg, #c8102e 0%, #8b0a1f 100%);
-    color: white;
-    padding: 30px 40px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    background: linear-gradient(135deg, #FFE4D6 0%, #FFCBA4 100%);
+    color: #8B4513;
+    padding: 6px 14px;
+    box-shadow: 0 1px 3px rgba(180,120,80,0.12);
     position: relative;
 }
-header h1 { font-size: 24px; font-weight: 700; }
-header .subtitle { font-size: 13px; opacity: 0.85; margin-top: 4px; }
+header h1 { font-size: 13px; font-weight: 700; line-height: 1.2; }
+header .subtitle { display: none; }
 .back-link {
     position: absolute;
-    top: 30px; right: 40px;
-    color: white;
+    top: 5px; right: 10px;
+    color: #8B4513;
     text-decoration: none;
-    background: rgba(255,255,255,0.18);
-    padding: 6px 14px;
-    border-radius: 16px;
-    font-size: 13px;
+    background: rgba(255,255,255,0.55);
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
 }
-.back-link:hover { background: rgba(255,255,255,0.3); }
+.back-link:hover { background: rgba(255,255,255,0.85); }
 
 main {
     max-width: 1100px;
@@ -256,10 +257,10 @@ label input:focus { border-color: #c8102e; outline: none; }
    ============================================================ */
 @media (max-width: 900px) {
     body { padding: 0 0 80px 0; }
-    header { padding: 14px 16px; }
-    header h1 { font-size: 18px; }
-    header .subtitle { font-size: 11px; }
-    .back-link { top: 14px; right: 14px; padding: 4px 10px; font-size: 11px; }
+    header { padding: 4px 10px; }
+    header h1 { font-size: 12px; }
+    header .subtitle { display: none; }
+    .back-link { top: 3px; right: 6px; padding: 1px 6px; font-size: 9px; }
     main { padding: 0 10px; margin: 14px auto; }
     h2 { font-size: 15px; margin-bottom: 10px; }
     .block { padding: 10px; margin-bottom: 10px; }
