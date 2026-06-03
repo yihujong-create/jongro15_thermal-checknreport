@@ -1,0 +1,1265 @@
+<!doctype html>
+<html lang="ko" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="ko">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ site_name }} 보고서 입력</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=67">
+<style>
+.photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+html,body{overflow-x:hidden!important;max-width:100%!important;}
+.block{width:100%!important;max-width:100%!important;overflow:hidden!important;}
+.meta-row,.measure-row,.photo-row,.b8-slot{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
+.meta-row>*,.measure-row>*,.photo-row>*,.b8-slot>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+label input{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.photo-input{width:100%!important;max-width:100%!important;min-width:0!important;}
+@media (max-width:900px){.photo-row{grid-template-columns:1fr!important;}}
+.photo-preview{position:relative;}
+.photo-preview>img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;display:block!important;}
+.photo-preview>.fname-tag{position:absolute;left:0;right:0;bottom:0;background:rgba(46,125,50,0.85);color:white;font-size:10px;text-align:center;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.photo-preview>.btn-delete-photo{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);color:white;border:2px solid white;font-size:13px;font-weight:700;line-height:1;cursor:pointer;z-index:10;padding:0;display:flex;align-items:center;justify-content:center;}
+.photo-preview>.btn-delete-photo:hover{background:rgba(200,16,46,0.95);}
+@media (max-width:900px){.photo-preview>.btn-delete-photo{width:32px;height:32px;font-size:16px;}}
+
+/* SP 마커 — 진한 회색 십자가 */
+.photo-preview .sp-marker{position:absolute;width:14px;height:14px;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);pointer-events:none;z-index:5;}
+.photo-preview .sp-marker::before,
+.photo-preview .sp-marker::after{content:'';position:absolute;background:white;box-shadow:0 0 0 1px rgba(0,0,0,0.7);}
+.photo-preview .sp-marker::before{width:14px;height:2px;}
+.photo-preview .sp-marker::after{width:2px;height:14px;}
+.photo-preview .sp-marker .sp-label{position:absolute;left:10px;top:-8px;font-size:10px;font-weight:600;color:white;background:rgba(0,0,0,0.45);padding:0 3px;border-radius:2px;white-space:nowrap;text-shadow:0 0 2px rgba(0,0,0,0.95);}
+
+/* BX 박스 마커 — 점선 회색 사각형 */
+.photo-preview .bx-marker{position:absolute;border:2px solid white;background:rgba(255,255,255,0.05);box-shadow:0 0 0 1px rgba(0,0,0,0.7),0 0 0 1px rgba(0,0,0,0.7) inset;pointer-events:none;z-index:5;box-sizing:border-box;}
+/* FLIR Tools 좌측 상단 정보 오버레이 박스 */
+.photo-preview .flir-overlay{position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.4);color:white;font-family:Arial,sans-serif;padding:3px 6px;border-radius:2px;font-size:11px;line-height:1.3;z-index:6;pointer-events:none;max-width:70%;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 2px rgba(0,0,0,0.9);}
+.photo-preview .flir-overlay .center-temp{font-size:16px;font-weight:700;display:block;}
+.photo-preview .flir-overlay .center-temp .unit{font-size:10px;font-weight:400;margin-left:2px;}
+.photo-preview .flir-overlay .sp-row,.photo-preview .flir-overlay .bx-row{font-size:11px;display:flex;gap:6px;align-items:baseline;}
+.photo-preview .flir-overlay .sp-row .lbl{font-weight:600;min-width:22px;display:inline-block;}.photo-preview .flir-overlay .bx-row .lbl{font-weight:600;min-width:54px;display:inline-block;}
+.photo-preview .flir-overlay .sp-row .val,.photo-preview .flir-overlay .bx-row .val{font-weight:400;}
+.photo-preview .bx-marker .bx-label{position:absolute;left:-1px;top:-14px;font-size:10px;font-weight:600;color:white;background:rgba(0,0,0,0.45);padding:0 4px;border-radius:2px;white-space:nowrap;text-shadow:0 0 2px rgba(0,0,0,0.95);}
+/* BX 박스 내 핫/콜드 스팟 마커 — 삼각형 */
+.photo-preview .hot-marker,.photo-preview .cold-marker{position:absolute;width:0;height:0;transform:translate(-50%,-50%);pointer-events:none;z-index:6;filter:drop-shadow(0 0 1px rgba(0,0,0,0.95));}
+.photo-preview .hot-marker{border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid #ff3030;}
+.photo-preview .cold-marker{border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid #2080ff;}
+
+
+/* 드래그 중 표시 */
+.photo-preview .bx-drag{position:absolute;border:2px dashed #c8102e;background:rgba(200,16,46,0.1);pointer-events:none;z-index:6;box-sizing:border-box;}
+
+.photo-preview.sp-active,.photo-preview.bx-active{cursor:crosshair;}
+
+/* 컨트롤 */
+.sp-controls,.bx-controls{display:flex;gap:4px;margin:4px 0;flex-wrap:wrap;}
+.sp-controls button,.bx-controls button{flex:1;min-width:50px;padding:5px 6px;font-size:11px;border:1px solid #3a3a3a;background:white;color:#3a3a3a;border-radius:3px;cursor:pointer;}
+.sp-controls button.active,.bx-controls button.active{background:#3a3a3a;color:white;}
+.sp-controls{margin-top:6px;}
+.bx-controls{margin-top:2px;}
+.flir-status{font-size:10px;color:#2e7d32;margin:3px 0;text-align:center;min-height:14px;}
+.flir-status.error{color:#999;}
+.bx-result{font-size:10px;color:#666;margin:2px 0;text-align:center;}
+/* 온도 보정 오프셋 */
+.temp-offset{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;color:#555;}
+.temp-offset label{font-size:10px;color:#777;margin:0;display:flex;align-items:center;gap:4px;}
+.temp-offset input{width:60px;padding:3px 5px;border:1px solid #c8102e;border-radius:3px;font-size:11px;text-align:center;}
+.temp-offset .unit{font-size:10px;color:#888;}
+.temp-offset .hint{font-size:9px;color:#999;margin-left:4px;}
+/* 붙임3 입력 그리드 */
+.b3-section{padding:8px 0;}
+.b3-h3{font-size:13px;color:#c8102e;margin:10px 0 6px;font-weight:600;border-bottom:1px dashed #ddd;padding-bottom:4px;}
+.b3-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.b3-grid-chk{grid-template-columns:repeat(4,1fr);}
+.b3-grid label{font-size:12px;color:#555;}
+.b3-grid input{padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;width:100%;box-sizing:border-box;margin-top:3px;}
+@media (max-width:700px){.b3-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* === 상단 액션 바 === */
+.sticky-top-wrap{position:fixed;top:0;left:0;right:0;z-index:200;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.10);}
+.action-bar{background:#fff;border-bottom:2px solid #c8102e;padding:10px 16px;display:flex;flex-direction:column;gap:8px;}
+.ab-name-row{display:flex;align-items:center;gap:8px;}
+.ab-name-label{font-size:12px;color:#555;font-weight:600;flex-shrink:0;min-width:80px;}
+.ab-name-input{flex:1;padding:7px 10px;border:1px solid #c8102e;border-radius:5px;font-size:13px;min-width:0;}
+.ab-name-input:focus{outline:0;border-color:#a40d25;box-shadow:0 0 0 2px rgba(200,16,46,0.15);}
+.ab-ym-input{max-width:140px;flex:0 0 auto;}
+.pdf-pages-bar{display:flex;align-items:center;gap:10px;padding:6px 12px;background:#fff5f5;border-top:1px dashed #e5b4b4;font-size:12px;flex-wrap:wrap;}
+.pdf-pages-label{font-weight:600;color:#c8102e;font-size:12px;flex-shrink:0;}
+.pdf-page-cb{display:flex;align-items:center;gap:4px;font-size:12px;color:#333;cursor:pointer;font-weight:500;}
+.pdf-page-cb input{margin:0;cursor:pointer;}
+.pdf-pages-allnone{margin-left:auto;padding:4px 10px;font-size:11px;background:#fff;border:1px solid #c8102e;color:#c8102e;border-radius:4px;cursor:pointer;}
+.pdf-pages-allnone:hover{background:#c8102e;color:#fff;}
+@media (max-width:700px){.pdf-pages-bar{gap:6px;padding:5px 10px;}.pdf-pages-label{width:100%;}.pdf-pages-allnone{margin-left:0;}}
+.ab-btn-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.ab-btn{padding:7px 14px;border-radius:5px;border:0;font-size:13px;font-weight:600;cursor:pointer;color:#fff;}
+.ab-btn-del{background:#d32f2f;}.ab-btn-del:hover{background:#b71c1c;}
+.ab-btn-save{background:#2e7d32;}.ab-btn-save:hover{background:#1b5e20;}
+.ab-btn-load{background:#1976d2;}.ab-btn-load:hover{background:#1565c0;}
+.ab-btn-new{background:#757575;}.ab-btn-new:hover{background:#555;}
+.ab-btn-pdf{background:#c8102e;}.ab-btn-pdf:hover{background:#8b0a1f;}
+.ab-autosave-status{font-size:11px;color:#666;margin-left:auto;min-width:120px;text-align:right;}
+.ab-autosave-status.saving{color:#ff9800;}
+.ab-autosave-status.saved{color:#2e7d32;}
+.ab-autosave-status.error{color:#c8102e;}
+@media (max-width:700px){.ab-name-row{flex-direction:column;align-items:stretch;gap:4px;}.ab-name-label{min-width:0;}.ab-btn{font-size:12px;padding:6px 10px;}.ab-autosave-status{flex:1;text-align:right;}}
+
+/* === 불러오기 다이얼로그 === */
+.load-dialog-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.load-dialog-bg.hidden{display:none;}
+.load-dialog{background:#fff;border-radius:10px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.25);}
+.load-dialog-header{padding:14px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;}
+.load-dialog-header h3{font-size:16px;color:#c8102e;margin:0;}
+.ab-btn-close{background:transparent;border:0;font-size:18px;color:#999;cursor:pointer;padding:4px 8px;}
+.load-dialog-list{overflow-y:auto;padding:8px 0;flex:1;}
+.load-item{padding:10px 18px;border-bottom:1px solid #f4f4f4;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.load-item:hover{background:#fafafa;}
+.load-item .l-name{flex:1;font-size:13px;color:#222;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.load-item .l-meta{font-size:11px;color:#888;flex-shrink:0;}
+.load-item .l-draft-badge{font-size:10px;background:#ff9800;color:#fff;padding:1px 6px;border-radius:8px;flex-shrink:0;}
+.load-item .l-del{background:transparent;border:1px solid #c8102e;color:#c8102e;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;flex-shrink:0;}
+.load-item .l-del:hover{background:#c8102e;color:#fff;}
+.load-empty{padding:30px 18px;text-align:center;color:#999;font-size:13px;}
+</style>
+</head>
+<body data-site-name="{{ site_name }}" translate="no" class="notranslate">
+{#- 실화상용 (촬영+갤러리 선택 가능) -#}
+{%- macro photo_input(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" capture="environment" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+{#- 열화상용 (capture 없음 → 모바일에서도 갤러리 선택) -#}
+{%- macro photo_input_ir(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">🔥</span><span class="btn-txt">사진 선택</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+<div class="sticky-top-wrap">
+<header>
+<h1>{{ site_name }}</h1>
+<p class="subtitle">측정값 확인 · 사진 촬영/업로드 · PDF 생성</p>
+<a class="back-link" href="{{ url_for('index') }}">← 다른 현장 선택</a>
+</header>
+
+<!-- 상단 액션 바 — 삭제/저장/불러오기/새로작성/PDF 생성 -->
+<div class="action-bar" id="action-bar">
+  <div class="ab-name-row">
+    <label class="ab-name-label">보고서 이름</label>
+    <input type="text" id="report-name" class="ab-name-input" placeholder="예: 2026-06-03 조달청 청사 분기점검">
+  </div>
+  <div class="ab-name-row">
+    <label class="ab-name-label">표지 연월</label>
+    <input type="text" id="cover-ym" name="year_month" form="report-form" class="ab-name-input ab-ym-input" placeholder="예: 2026.06" maxlength="8">
+  </div>
+  <div class="ab-btn-row">
+    <button type="button" class="ab-btn ab-btn-del" onclick="confirmDeleteCurrent()" title="현재 보고서 삭제">🗑️ 삭제</button>
+    <button type="button" class="ab-btn ab-btn-save" onclick="saveReport()">💾 저장</button>
+    <button type="button" class="ab-btn ab-btn-load" onclick="openLoadDialog()">📂 불러오기</button>
+    <button type="button" class="ab-btn ab-btn-new" onclick="confirmNewReport()">📝 새로 작성</button>
+    <button type="button" class="ab-btn ab-btn-pdf" onclick="document.getElementById('report-form').requestSubmit ? document.getElementById('report-form').requestSubmit() : document.getElementById('report-form').submit()">📄 PDF 생성</button>
+    <span class="ab-autosave-status" id="autosave-status"></span>
+  </div>
+  <div class="pdf-pages-bar">
+    <span class="pdf-pages-label">PDF 포함 페이지:</span>
+    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
+    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3 (인버터)</label>
+    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7 (열화상)</label>
+    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8 (점검사진)</label>
+    <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체 선택/해제</button>
+  </div>
+</div>
+</div><!-- /sticky-top-wrap -->
+
+<!-- 불러오기 다이얼로그 -->
+<div class="load-dialog-bg hidden" id="load-dialog-bg" onclick="if(event.target===this)closeLoadDialog()">
+  <div class="load-dialog">
+    <div class="load-dialog-header">
+      <h3>저장된 보고서 불러오기</h3>
+      <button type="button" class="ab-btn-close" onclick="closeLoadDialog()">✕</button>
+    </div>
+    <div class="load-dialog-list" id="load-list">
+      <div class="load-empty">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<form id="report-form" action="{{ url_for('generate') }}" method="post" enctype="multipart/form-data">
+<input type="hidden" name="site_name" value="{{ site_name }}">
+<input type="hidden" name="markers_json" id="markers_json" value="{}">
+<main>
+<section class="block-section">
+<h2>붙임3 — 인버터 점검기록표</h2>
+<p class="hint">기본사항은 사이트 PRESET 고정. 운전상황과 점검결과만 입력하세요.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임3</span><span class="block-title">인버터 (INV-1)</span></div>
+<div class="b3-section">
+  <h3 class="b3-h3">운전상황</h3>
+  <div class="b3-grid">
+    <label>DCV (V)<input type="text" name="b3_dcv" placeholder="예: 667.27"></label>
+    <label>DCA (A)<input type="text" name="b3_dca" placeholder="예: 69.91"></label>
+    <label>ACV (V)<input type="text" name="b3_acv" placeholder="예: 399.38"></label>
+    <label>ACA (A)<input type="text" name="b3_aca" placeholder="예: 66.54"></label>
+    <label>KW<input type="text" name="b3_kw" placeholder="예: 47"></label>
+    <label>HZ<input type="text" name="b3_hz" placeholder="예: 59.96"></label>
+    <label>누적발전량 (MWh)<input type="text" name="b3_cum_mwh" placeholder="예: 862.698"></label>
+  </div>
+  <h3 class="b3-h3">점검결과</h3>
+  <div class="b3-grid b3-grid-chk">
+    <label>과열 유무<input type="text" name="b3_chk_overheat" value="양호"></label>
+    <label>접지선 접속<input type="text" name="b3_chk_ground" value="양호"></label>
+    <label>입출력 전압적정<input type="text" name="b3_chk_voltage" value="양호"></label>
+    <label>출력 과전류 유무<input type="text" name="b3_chk_overcurrent" value="양호"></label>
+    <label>FAN 동작상태<input type="text" name="b3_chk_fan" value="양호"></label>
+    <label>SPD 상태<input type="text" name="b3_chk_spd" value="양호"></label>
+    <label>필터 상태<input type="text" name="b3_chk_filter" value="양호"></label>
+    <label>내부청결상태<input type="text" name="b3_chk_clean" value="양호"></label>
+  </div>
+</div>
+</div>
+</section>
+
+<section class="block-section">
+<h2>붙임7 — 적외선 열화상분포 측정기록표</h2>
+<p class="hint">총 {{ preset.blocks|length }}개 블록. 열화상 사진을 추가하면 SP/Bx 마커로 자동 입력되며, 직접 입력도 가능합니다.</p>
+{% for blk in preset.blocks %}
+<div class="block">
+<div class="block-header">
+<span class="block-num">블록 {{ loop.index }}</span>
+<span class="block-title">{{ blk.target }} — {{ blk.upper_label }}{% if blk.lower_label %} / {{ blk.lower_label }}{% endif %}</span>
+</div>
+<div class="meta-row">
+<label>측정대상<input type="text" name="target{{ loop.index0 }}" value="{{ blk.target }}"></label>
+<label>사용전압<input type="text" name="voltage{{ loop.index0 }}" value="{{ blk.voltage }}"></label>
+<label>측정조건<input type="text" name="condition{{ loop.index0 }}" value="{{ blk.condition }}"></label>
+</div>
+<div class="measure-row">
+<label class="part-label">부위별 측정 온도 (상단)<input type="text" name="u_label{{ loop.index0 }}" value="{{ blk.upper_label }}"></label>
+<label>Point 1<input type="number" step="0.1" name="u{{ loop.index0 }}_p0" value=""></label>
+<label>Point 2<input type="number" step="0.1" name="u{{ loop.index0 }}_p1" value=""></label>
+<label>Point 3<input type="number" step="0.1" name="u{{ loop.index0 }}_p2" value=""></label>
+</div>
+<div class="measure-row {% if not blk.lower_label %}hidden{% endif %}">
+<label class="part-label">부위별 측정 온도 (하단)<input type="text" name="l_label{{ loop.index0 }}" value="{{ blk.lower_label }}"></label>
+<label>Point 1<input type="number" step="0.1" name="l{{ loop.index0 }}_p0" value=""></label>
+<label>Point 2<input type="number" step="0.1" name="l{{ loop.index0 }}_p1" value=""></label>
+<label>Point 3<input type="number" step="0.1" name="l{{ loop.index0 }}_p2" value=""></label>
+</div>
+<div class="photo-row">
+{{ photo_input('photo_' ~ loop.index0 ~ '_uv', '상단 실화상') }}
+{{ photo_input_ir('photo_' ~ loop.index0 ~ '_ut', '상단 열화상') }}
+{% if blk.lower_label %}
+{{ photo_input('photo_' ~ loop.index0 ~ '_lv', '하단 실화상') }}
+{{ photo_input_ir('photo_' ~ loop.index0 ~ '_lt', '하단 열화상') }}
+{% endif %}
+</div>
+</div>
+{% endfor %}
+</section>
+
+<section class="b8-section">
+<h2>붙임8 — 점검사진대지 ({{ preset.b8_captions|length }}페이지)</h2>
+{% for page in preset.b8_captions %}
+<div class="block">
+<div class="block-header"><span class="block-num">붙임8 {{ loop.index }}페이지</span></div>
+{% set page_idx = loop.index0 %}
+<div class="b8-slots-grid">
+{% for cap in page %}
+<div class="b8-slot">
+<label class="b8-caption">캡션<input type="text" name="b8_{{ page_idx }}_{{ loop.index0 }}_caption" value="{{ cap }}"></label>
+{{ photo_input('b8_' ~ page_idx ~ '_' ~ loop.index0 ~ '_photo', '점검사진') }}
+</div>
+{% endfor %}
+</div>
+</div>
+{% endfor %}
+</section>
+
+</main>
+</form>
+
+<script>
+var SITE_NAME = document.body.dataset.siteName || 'site';
+var STORAGE_PREFIX = 'photo_' + SITE_NAME + '_';
+
+// === sticky-top-wrap이 fixed라 body padding-top을 wrap 높이만큼 동적 설정 ===
+function _updateStickyPad() {
+  var wrap = document.querySelector('.sticky-top-wrap');
+  if (wrap) document.body.style.paddingTop = wrap.offsetHeight + 'px';
+}
+window.addEventListener('load', function() {
+  _updateStickyPad();
+  // ResizeObserver로 wrap 높이 변화 자동 감지
+  try {
+    var wrap = document.querySelector('.sticky-top-wrap');
+    if (wrap && window.ResizeObserver) {
+      new ResizeObserver(_updateStickyPad).observe(wrap);
+    }
+  } catch(e) {}
+});
+window.addEventListener('resize', _updateStickyPad);
+// orientation 변경(모바일) 시에도
+window.addEventListener('orientationchange', function() { setTimeout(_updateStickyPad, 200); });
+var MAX_SIDE = 1280;
+var JPEG_QUALITY = 0.85;
+
+function renderPreview(name, dataUrl, fname) {
+  var preview = document.getElementById('preview_' + name);
+  if (!preview) return;
+  preview.innerHTML = '';
+  var img = document.createElement('img');
+  img.src = dataUrl; img.alt = 'preview';
+  var btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'btn-delete-photo';
+  btn.textContent = '✕'; btn.title = '사진 삭제';
+  btn.onclick = function() { deletePhoto(name); };
+  var tag = document.createElement('div');
+  tag.className = 'fname-tag'; tag.textContent = fname;
+  preview.appendChild(img);
+  preview.appendChild(btn);
+  preview.appendChild(tag);
+}
+
+function resizeImage(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function() {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX_SIDE || h > MAX_SIDE) {
+          if (w > h) { h = Math.round(h * MAX_SIDE / w); w = MAX_SIDE; }
+          else       { w = Math.round(w * MAX_SIDE / h); h = MAX_SIDE; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob) {
+          var r2 = new FileReader();
+          r2.onload = function(e2) { resolve({ dataUrl: e2.target.result, blob: blob }); };
+          r2.readAsDataURL(blob);
+        }, 'image/jpeg', JPEG_QUALITY);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function dataUrlToFile(dataUrl, fname) {
+  return fetch(dataUrl).then(function(r){return r.blob();}).then(function(blob){
+    return new File([blob], fname, { type: blob.type || 'image/jpeg' });
+  });
+}
+
+function setInputFile(input, file) {
+  try {
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  } catch (e) {}
+}
+
+function showPreview(name, input) {
+  var preview = document.getElementById('preview_' + name);
+  if (!input.files || !input.files[0]) { preview.textContent = '선택된 파일 없음'; return; }
+  var file = input.files[0];
+  if (!file.type.startsWith('image/')) { preview.textContent = file.name; return; }
+  preview.innerHTML = '<span style="font-size:11px;color:#888">처리중...</span>';
+  resizeImage(file).then(function(r) {
+    try {
+      var existingMarkers = (window._flirDecoded && window._flirDecoded[name]) || null;
+      sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+        dataUrl: r.dataUrl, name: file.name,
+        markers: existingMarkers  // 사진 변경 시 마커도 함께 (보통은 신규라 null)
+      }));
+    } catch (e) {}
+    var newFile = new File([r.blob], file.name, { type: 'image/jpeg' });
+    setInputFile(input, newFile);
+    renderPreview(name, r.dataUrl, file.name);
+    try { tryFlirAnalysis(name, file); } catch(e) { console.warn('FLIR 시도 실패', e); }
+  }).catch(function(e) { console.error(e); preview.textContent = '미리보기 실패'; });
+}
+
+function deletePhoto(name) {
+  sessionStorage.removeItem(STORAGE_PREFIX + name);
+  var input = document.getElementById('file_' + name);
+  if (input) { try { input.value = ''; } catch(e){} try { input.files = new DataTransfer().files; } catch(e){} }
+  var preview = document.getElementById('preview_' + name);
+  if (preview) preview.textContent = '선택된 파일 없음';
+  if (window._flirDecoded) delete window._flirDecoded[name];
+  removeFlirControls(name);
+}
+
+function removeFlirControls(name) {
+  ['.sp-controls','.bx-controls','.flir-status','.bx-result'].forEach(function(sel) {
+    document.querySelectorAll(sel).forEach(function(el) {
+      if (el.dataset && el.dataset.target === name) el.remove();
+    });
+  });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var keys = [];
+  for (var i = 0; i < sessionStorage.length; i++) {
+    var k = sessionStorage.key(i);
+    if (k && k.indexOf(STORAGE_PREFIX) === 0) keys.push(k);
+  }
+  keys.forEach(function(key) {
+    try {
+      var data = JSON.parse(sessionStorage.getItem(key));
+      var name = key.substring(STORAGE_PREFIX.length);
+      var input = document.getElementById('file_' + name);
+      if (!input) return;
+      dataUrlToFile(data.dataUrl, data.name).then(function(file) {
+        setInputFile(input, file);
+        renderPreview(name, data.dataUrl, data.name);
+        // markers 복원 (저장됐던 SP/BX)
+        if (data.markers && data.markers.hash) {
+          window._flirDecoded[name] = data.markers;
+          // FLIR 상태 + 컨트롤 UI 복원
+          setFlirStatus(name, '✓ FLIR ' + data.markers.width + '×' + data.markers.height + ' (저장됨)');
+          showControls(name);
+          // 잠깐 기다린 후 마커 그리기 (이미지 로드 대기)
+          setTimeout(function(){ drawMarkers(name); }, 100);
+          setTimeout(function(){ drawMarkers(name); }, 500);  // 한 번 더 (느린 로딩 대비)
+        }
+      });
+    } catch (e) {}
+  });
+});
+
+document.addEventListener('submit', function(ev) {
+  if (ev.target && ev.target.action && ev.target.action.indexOf('/generate') !== -1) {
+    // 폼 제출 직전 SP/BX 마커 정보를 hidden field에 넣음
+    try {
+      var markers = {};
+      for (var name in window._flirDecoded) {
+        var info = window._flirDecoded[name];
+        var _off = getOffset(name);
+        markers[name] = { sp: info.sp || {}, bx: info.bx || {}, width: info.width, height: info.height, offset: _off };
+      }
+      var markersStr = JSON.stringify(markers);
+      document.getElementById('markers_json').value = markersStr;
+      console.log('[FORM SUBMIT] markers_json (len=' + markersStr.length + '):', markersStr.substring(0, 500));
+      console.log('[FORM SUBMIT] _flirDecoded:', window._flirDecoded);
+    } catch(e) { console.warn('markers 직렬화 실패', e); }
+    setTimeout(function() {
+      try {
+        var toRemove = [];
+        for (var i = 0; i < sessionStorage.length; i++) {
+          var k = sessionStorage.key(i);
+          if (k && k.indexOf(STORAGE_PREFIX) === 0) toRemove.push(k);
+        }
+        toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
+      } catch (e) {}
+    }, 5000);
+  }
+});
+
+// ============ FLIR 자동 분석 ============
+window._flirDecoded = {};
+var _activeMode = null;
+function persistMarkers(name) {
+  try {
+    var key = STORAGE_PREFIX + name;
+    var existing = sessionStorage.getItem(key);
+    if (!existing) return;
+    var obj = JSON.parse(existing);
+    obj.markers = window._flirDecoded[name] || null;
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (e) {}
+}
+ // 'sp1'/'sp2'/'sp3'/'bx1'/'bx2'/'bx3'
+var _activeName = null;
+var _dragState = null;
+
+// 새 열화상 사진이 들어오면 해당 블록의 Point 1/2/3 입력란을 빈 값으로 초기화
+function clearPointsForPhoto(name) {
+  var m = name.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var bi = m[1];
+  var kind = m[2] === 'ut' ? 'u' : 'l';
+  [0, 1, 2].forEach(function(i) {
+    var inp = document.querySelector('input[name="' + kind + bi + '_p' + i + '"]');
+    if (inp) inp.value = '';
+  });
+}
+
+// 열화상에서 추출한 embedded 실화상을 같은 블록의 실화상 슬롯에 자동 채움
+//   photo_X_ut → photo_X_uv (상단), photo_X_lt → photo_X_lv (하단)
+function autoFillVisible(irName, visibleDataUrl) {
+  if (!visibleDataUrl) return;
+  var m = irName.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var visName = 'photo_' + m[1] + '_' + (m[2] === 'ut' ? 'uv' : 'lv');
+  var visInput = document.getElementById('file_' + visName);
+  if (!visInput) return;
+  // dataURL → Blob → File
+  fetch(visibleDataUrl).then(function(r){return r.blob();}).then(function(blob){
+    var fname = 'visible_' + irName + '.jpg';
+    var newFile = new File([blob], fname, { type: 'image/jpeg' });
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(newFile);
+      visInput.files = dt.files;
+    } catch(e) {}
+    // 미리보기 갱신 + 리사이즈/저장 흐름
+    showPreview(visName, visInput);
+    console.log('[autoFillVisible] ' + irName + ' → ' + visName + ' 자동 채움');
+  }).catch(function(e){ console.warn('autoFillVisible 실패', e); });
+}
+
+function tryFlirAnalysis(name, file) {
+  if (!/_(ut|lt)$/.test(name)) return;
+  var fd = new FormData();
+  fd.append('photo', file);
+  fetch('/api/flir_decode', { method: 'POST', body: fd }).then(function(r){return r.json();}).then(function(data){
+    // embedded 실화상 추출 가능하면 같은 블록 실화상 슬롯에 자동 채움 (FLIR 메타 유무 관계없이)
+    if (data && data.visible_image_b64) {
+      autoFillVisible(name, data.visible_image_b64);
+    }
+    if (!data || !data.is_flir) { setFlirStatus(name, '(FLIR 메타 없음)', true); return; }
+    window._flirDecoded[name] = {
+      hash: data.hash, width: data.width, height: data.height,
+      sp: {1:null,2:null,3:null}, bx: {1:null,2:null,3:null},
+      centerTemp: null
+    };
+    setFlirStatus(name, '✓ FLIR ' + data.width + '×' + data.height + ' · ' + data.temp_min + '°C ~ ' + data.temp_max + '°C');
+    // 새 열화상 사진이 들어오면 해당 Point 1/2/3 자동 초기화
+    clearPointsForPhoto(name);
+    showControls(name);
+    // (중앙 온도 표시 — 사용자 요청으로 제거됨)
+  }).catch(function(e) { console.warn('FLIR 분석 오류', e); });
+}
+
+function setFlirStatus(name, msg, isError) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  var stat = null;
+  var sib = prev.parentElement.querySelectorAll('.flir-status');
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { stat = sib[i]; break; }
+  if (!stat) {
+    stat = document.createElement('div');
+    stat.className = 'flir-status'; stat.dataset.target = name;
+    prev.parentElement.appendChild(stat);
+  }
+  stat.textContent = msg;
+  if (isError) stat.classList.add('error'); else stat.classList.remove('error');
+}
+
+function showControls(name) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  // SP 컨트롤
+  var sib = prev.parentElement.querySelectorAll('.sp-controls');
+  var exists = false;
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { exists = true; break; }
+  if (!exists) {
+    var spCtrl = document.createElement('div');
+    spCtrl.className = 'sp-controls';
+    spCtrl.dataset.target = name;
+    [1,2,3].forEach(function(i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'SP' + i;
+      b.onclick = function() { toggleMode(name, 'sp' + i, b); };
+      spCtrl.appendChild(b);
+    });
+    var bxCtrl = document.createElement('div');
+    bxCtrl.className = 'bx-controls';
+    bxCtrl.dataset.target = name;
+    [1,2,3].forEach(function(i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Bx' + i;
+      b.onclick = function() { toggleMode(name, 'bx' + i, b); };
+      bxCtrl.appendChild(b);
+    });
+    var c = document.createElement('button');
+    c.type = 'button'; c.textContent = '취소';
+    c.style.color = '#666'; c.style.borderColor = '#aaa';
+    c.onclick = function() { resetAllMarkers(name); };
+    bxCtrl.appendChild(c);
+    prev.parentElement.appendChild(spCtrl);
+    prev.parentElement.appendChild(bxCtrl);
+    // 온도 보정 오프셋 입력란
+    var off = document.createElement('div');
+    off.className = 'temp-offset';
+    off.dataset.target = name;
+    off.innerHTML = '<label>온도 보정: <input type="number" step="0.1" data-offset="' + name + '" value="0" placeholder="0.0"></label><span class="unit">°C</span><span class="hint">(SP/BX 값에 자동 가감)</span>';
+    prev.parentElement.appendChild(off);
+    // offset 변경 시 모든 SP/BX 값 재적용
+    off.querySelector('input').addEventListener('change', function(){ reapplyOffset(name); });
+    off.querySelector('input').addEventListener('input', function(){ reapplyOffset(name); });
+    // 이벤트 핸들러 설치
+    prev.addEventListener('click', onPreviewClick);
+    prev.addEventListener('mousedown', onDragStart);
+    prev.addEventListener('touchstart', onDragStart, {passive: false});
+  }
+}
+
+function getOffset(name) {
+  var el = document.querySelector('input[data-offset="' + name + '"]');
+  if (!el) return 0;
+  var v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function reapplyOffset(name) {
+  // 사진에 등록된 모든 SP/BX에 offset 적용 → Point 입력란 + 사진 위 표시 + BX 결과 텍스트 모두 갱신
+  var info = window._flirDecoded && window._flirDecoded[name];
+  if (!info) return;
+  var off = getOffset(name);
+  // 1) Point 1/2/3 입력란 — SP는 SP가 우선, 그 다음 BX max
+  for (var k = 1; k <= 3; k++) {
+    var p = info.sp[k];
+    if (p && p.t != null) {
+      autoFillPoint(name, k, Math.round((p.t + off) * 10) / 10);
+    }
+  }
+  for (var k2 = 1; k2 <= 3; k2++) {
+    var b = info.bx[k2];
+    if (b && b.max != null) {
+      autoFillPoint(name, k2, Math.round((b.max + off) * 10) / 10);
+    }
+  }
+  // 2) 사진 위 마커 + 좌측 상단 오버레이 다시 그리기 (보정값 반영)
+  try { drawMarkers(name); } catch(e) { console.warn(e); }
+  // 3) BX 결과 텍스트 다시 표시 (보정값 반영)
+  try {
+    for (var k3 = 1; k3 <= 3; k3++) {
+      var bb = info.bx[k3];
+      if (bb) showBxResult(name, k3, bb);
+    }
+  } catch(e) { console.warn(e); }
+  // 4) sessionStorage에도 현재 offset 보존
+  try { persistMarkers(name); } catch(e) {}
+}
+
+function toggleMode(name, mode, btn) {
+  clearActiveButtons();
+  _activeName = name; _activeMode = mode;
+  btn.classList.add('active');
+  var prev = document.getElementById('preview_' + name);
+  if (prev) {
+    prev.classList.remove('sp-active','bx-active');
+    if (mode.indexOf('sp') === 0) prev.classList.add('sp-active');
+    else prev.classList.add('bx-active');
+  }
+}
+
+function clearActiveButtons() {
+  document.querySelectorAll('.sp-controls button.active, .bx-controls button.active').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.photo-preview.sp-active, .photo-preview.bx-active').forEach(function(p){
+    p.classList.remove('sp-active','bx-active');
+  });
+}
+
+function exitMode() {
+  clearActiveButtons();
+  _activeName = null; _activeMode = null;
+}
+
+// 취소 버튼 = 해당 사진의 모든 SP/BX 마커, Point 입력란, bx-result 결과 텍스트
+// 모두 지우고 모드 리셋 → 처음부터 다시 탭 가능
+function resetAllMarkers(name) {
+  if (window._flirDecoded && window._flirDecoded[name]) {
+    window._flirDecoded[name].sp = {1:null, 2:null, 3:null};
+    window._flirDecoded[name].bx = {1:null, 2:null, 3:null};
+  }
+  // 사진 위 마커 전부 제거 (drawMarkers가 빈 정보로 재그리기)
+  var prev = document.getElementById('preview_' + name);
+  if (prev) {
+    prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
+  }
+  // BX 결과 텍스트(예: "Bx1: max ... / min ... / avg ...") 모두 비우기
+  if (prev && prev.parentElement) {
+    prev.parentElement.querySelectorAll('.bx-result').forEach(function(r) {
+      if (r.dataset && r.dataset.target === name) r.textContent = '';
+    });
+  }
+  // Point 1/2/3 입력란 비우기
+  try { clearPointsForPhoto(name); } catch(e) {}
+  // sessionStorage 마커 정보 갱신 (다음 로드 시 빈 상태)
+  try { if (typeof persistMarkers === 'function') persistMarkers(name); } catch(e) {}
+  // 활성 모드 종료
+  exitMode();
+  console.log('[resetAllMarkers] ' + name + ' SP/BX/Point 전부 초기화');
+}
+
+function getPixelFromEvent(prev, clientX, clientY) {
+  var img = prev.querySelector('img');
+  if (!img) return null;
+  var rect = img.getBoundingClientRect();
+  var ix = clientX - rect.left, iy = clientY - rect.top;
+  if (ix < 0 || iy < 0 || ix > rect.width || iy > rect.height) return null;
+  var info = window._flirDecoded[_activeName];
+  if (!info) return null;
+  return {
+    dispX: ix, dispY: iy,
+    rectW: rect.width, rectH: rect.height,
+    rx: Math.round(ix / rect.width * info.width),
+    ry: Math.round(iy / rect.height * info.height)
+  };
+}
+
+function onPreviewClick(ev) {
+  if (!_activeName || !_activeMode) return;
+  if (_activeMode.indexOf('sp') !== 0) return; // SP만 단일 클릭
+  if (_dragState && _dragState.didMove) { _dragState = null; return; }
+  _dragState = null;
+  var prev = ev.currentTarget;
+  var p = getPixelFromEvent(prev, ev.clientX, ev.clientY);
+  if (!p) return;
+  var idx = parseInt(_activeMode.substring(2));
+  var info = window._flirDecoded[_activeName];
+  var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) + '&sp' + idx + '_x=' + p.rx + '&sp' + idx + '_y=' + p.ry;
+  fetch(url).then(function(r){return r.json();}).then(function(data){
+    if (data.points && data.points.length) {
+      var pt = data.points[0];
+      info.sp[idx] = { x: p.rx, y: p.ry, t: pt.temp, dispX: p.dispX, dispY: p.dispY, rectW: p.rectW, rectH: p.rectH };
+      console.log('[SP 등록] name=' + _activeName + ' SP' + idx + ' (x=' + p.rx + ',y=' + p.ry + ',t=' + pt.temp + ')');
+      drawMarkers(_activeName);
+      var _off = getOffset(_activeName);
+      autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
+      persistMarkers(_activeName);
+      var next = idx + 1;
+      if (next <= 3) {
+        var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
+        if (nb) toggleMode(_activeName, 'sp' + next, nb);
+      } else { exitMode(); }
+    }
+  }).catch(function(e) { console.error(e); });
+}
+
+function onDragStart(ev) {
+  if (!_activeName || !_activeMode) return;
+  if (_activeMode.indexOf('bx') !== 0) return;
+  ev.preventDefault();
+  var prev = ev.currentTarget;
+  var cx, cy;
+  if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+  else { cx = ev.clientX; cy = ev.clientY; }
+  var p = getPixelFromEvent(prev, cx, cy);
+  if (!p) return;
+  _dragState = { prev: prev, start: p, didMove: false };
+  // 임시 박스
+  var box = document.createElement('div');
+  box.className = 'bx-drag';
+  box.id = '_dragbox';
+  box.style.left = p.dispX + 'px';
+  box.style.top = p.dispY + 'px';
+  box.style.width = '0px';
+  box.style.height = '0px';
+  prev.appendChild(box);
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchmove', onDragMove, {passive: false});
+  document.addEventListener('touchend', onDragEnd);
+}
+
+function onDragMove(ev) {
+  if (!_dragState) return;
+  ev.preventDefault();
+  var cx, cy;
+  if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+  else { cx = ev.clientX; cy = ev.clientY; }
+  var p = getPixelFromEvent(_dragState.prev, cx, cy);
+  if (!p) return;
+  _dragState.end = p;
+  _dragState.didMove = true;
+  var box = document.getElementById('_dragbox');
+  if (!box) return;
+  var x = Math.min(_dragState.start.dispX, p.dispX);
+  var y = Math.min(_dragState.start.dispY, p.dispY);
+  var w = Math.abs(p.dispX - _dragState.start.dispX);
+  var h = Math.abs(p.dispY - _dragState.start.dispY);
+  box.style.left = x + 'px';
+  box.style.top = y + 'px';
+  box.style.width = w + 'px';
+  box.style.height = h + 'px';
+}
+
+function onDragEnd(ev) {
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  var box = document.getElementById('_dragbox');
+  if (box) box.remove();
+  if (!_dragState || !_dragState.didMove || !_dragState.end) { _dragState = null; return; }
+  var s = _dragState.start, e = _dragState.end;
+  var prev = _dragState.prev;
+  var idx = parseInt(_activeMode.substring(2));
+  var info = window._flirDecoded[_activeName];
+  if (!info) { _dragState = null; return; }
+  var x1 = Math.min(s.rx, e.rx), y1 = Math.min(s.ry, e.ry);
+  var x2 = Math.max(s.rx, e.rx), y2 = Math.max(s.ry, e.ry);
+  var dx1 = Math.min(s.dispX, e.dispX), dy1 = Math.min(s.dispY, e.dispY);
+  var dx2 = Math.max(s.dispX, e.dispX), dy2 = Math.max(s.dispY, e.dispY);
+  if (x2 - x1 < 2 || y2 - y1 < 2) { _dragState = null; return; }
+  var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+    '&bx' + idx + '_x1=' + x1 + '&bx' + idx + '_y1=' + y1 +
+    '&bx' + idx + '_x2=' + x2 + '&bx' + idx + '_y2=' + y2;
+  fetch(url).then(function(r){return r.json();}).then(function(data){
+    if (data.boxes && data.boxes.length) {
+      var b = data.boxes[0];
+      info.bx[idx] = {
+        x1: x1, y1: y1, x2: x2, y2: y2,
+        dx1: dx1, dy1: dy1, dx2: dx2, dy2: dy2,
+        rectW: s.rectW, rectH: s.rectH,
+        max: b.max, min: b.min, avg: b.avg,
+        max_x: b.max_x, max_y: b.max_y, min_x: b.min_x, min_y: b.min_y
+      };
+      drawMarkers(_activeName);
+      showBxResult(_activeName, idx, b);
+      // Bx도 Point에 자동 입력 (max값 + offset)
+      var _off2 = getOffset(_activeName);
+      autoFillPoint(_activeName, idx, Math.round((b.max + _off2) * 10) / 10);
+      persistMarkers(_activeName);
+    }
+  }).catch(function(e) { console.error(e); });
+  _dragState = null;
+}
+
+function showBxResult(name, idx, b) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  var res = null;
+  var sib = prev.parentElement.querySelectorAll('.bx-result');
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { res = sib[i]; break; }
+  if (!res) {
+    res = document.createElement('div');
+    res.className = 'bx-result'; res.dataset.target = name;
+    prev.parentElement.appendChild(res);
+  }
+  // offset 적용된 값으로 표시
+  var _off = getOffset(name);
+  var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
+  res.textContent = 'Bx' + idx + ': max ' + fmt(b.max) + '°C · min ' + fmt(b.min) + '°C · avg ' + fmt(b.avg) + '°C';
+}
+
+function drawMarkers(name) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
+  var info = window._flirDecoded[name];
+  if (!info) return;
+  var _off = getOffset(name);
+  var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
+  // 1) 사진 위 SP 마커 — 작은 + 십자가 + 라벨
+  [1,2,3].forEach(function(k) {
+    var p = info.sp[k];
+    if (!p) return;
+    var m = document.createElement('div');
+    m.className = 'sp-marker';
+    m.style.left = p.dispX + 'px';
+    m.style.top = p.dispY + 'px';
+    m.title = 'Sp' + k + ': ' + (p.t != null ? ((Math.round((p.t + _off) * 10) / 10).toFixed(1)) + '°C' : '');
+    var lab = document.createElement('span');
+    lab.className = 'sp-label';
+    lab.textContent = 'Sp' + k;
+    m.appendChild(lab);
+    prev.appendChild(m);
+  });
+  // 2) BX 박스 + 라벨 (좌측 상단) + 핫(▲빨강)/콜드(▼파랑) 스팟
+  [1,2,3].forEach(function(k) {
+    var b = info.bx[k];
+    if (!b) return;
+    var m = document.createElement('div');
+    m.className = 'bx-marker';
+    m.style.left = b.dx1 + 'px';
+    m.style.top = b.dy1 + 'px';
+    m.style.width = (b.dx2 - b.dx1) + 'px';
+    m.style.height = (b.dy2 - b.dy1) + 'px';
+    m.title = 'Bx' + k + ': max ' + fmt(b.max) + '°C / min ' + fmt(b.min) + '°C / avg ' + fmt(b.avg) + '°C';
+    var lab = document.createElement('span');
+    lab.className = 'bx-label';
+    lab.textContent = 'Bx' + k;
+    m.appendChild(lab);
+    prev.appendChild(m);
+    
+    // 핫/콜드 스팟 — 박스 내 max/min 좌표를 display 좌표로 변환
+    if (b.max_x != null && b.max_y != null) {
+      var hx = b.max_x * (b.rectW / info.width);
+      var hy = b.max_y * (b.rectH / info.height);
+      var hot = document.createElement('div');
+      hot.className = 'hot-marker';
+      hot.style.left = hx + 'px';
+      hot.style.top = hy + 'px';
+      hot.title = '핫스팟 (Bx' + k + ' max ' + b.max + '°C)';
+      prev.appendChild(hot);
+    }
+    if (b.min_x != null && b.min_y != null) {
+      var cx = b.min_x * (b.rectW / info.width);
+      var cy = b.min_y * (b.rectH / info.height);
+      var cold = document.createElement('div');
+      cold.className = 'cold-marker';
+      cold.style.left = cx + 'px';
+      cold.style.top = cy + 'px';
+      cold.title = '콜드스팟 (Bx' + k + ' min ' + b.min + '°C)';
+      prev.appendChild(cold);
+    }
+  });
+  // 3) 좌측 상단 정보 오버레이 박스 (SP/BX 리스트) — offset 반영
+  var overlay = document.createElement('div');
+  overlay.className = 'flir-overlay';
+  // SP 리스트 (offset 적용)
+  [1,2,3].forEach(function(k) {
+    var p = info.sp[k];
+    if (!p || p.t == null) return;
+    overlay.innerHTML += '<div class="sp-row"><span class="lbl">Sp' + k + '</span><span class="val">' + fmt(p.t) + ' °C</span></div>';
+  });
+  // BX 리스트 max/min/avg (offset 적용)
+  [1,2,3].forEach(function(k) {
+    var b = info.bx[k];
+    if (!b) return;
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' max</span><span class="val">' + fmt(b.max) + ' °C</span></div>';
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' min</span><span class="val">' + fmt(b.min) + ' °C</span></div>';
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' avg</span><span class="val">' + fmt(b.avg) + ' °C</span></div>';
+  });
+  prev.appendChild(overlay);
+}
+
+function autoFillPoint(name, idx, temp) {
+  var m = name.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var bi = m[1];
+  var kind = m[2] === 'ut' ? 'u' : 'l';
+  var inp = document.querySelector('input[name="' + kind + bi + '_p' + (idx-1) + '"]');
+  if (inp) {
+    inp.value = temp;
+    inp.style.background = '#fffbe6';
+    setTimeout(function(){ inp.style.background = ''; }, 1500);
+  }
+}
+
+// ============================================================
+// 저장/불러오기/삭제/새로 작성 — v61
+// ============================================================
+var currentReportId = null;
+
+function setAutosaveStatus(state, msg) {
+  var el = document.getElementById('autosave-status');
+  if (!el) return;
+  el.className = 'ab-autosave-status ' + (state || '');
+  el.textContent = msg || '';
+}
+
+// 폼 데이터를 JSON으로 직렬화 (input 값 + 사진 dataURL + 마커 + offset)
+function serializeFormData() {
+  var fields = {};
+  // 폼 안 + 폼 밖에서 form="report-form" 속성으로 연결된 input 모두 포함
+  var selectors = [
+    '#report-form input[type="text"]',
+    '#report-form input[type="number"]',
+    '#report-form input[type="hidden"]',
+    'input[form="report-form"]'
+  ];
+  selectors.forEach(function(sel) {
+    document.querySelectorAll(sel).forEach(function(inp) {
+      if (!inp.name) return;
+      if (inp.type === 'checkbox' || inp.type === 'radio') {
+        fields[inp.name] = inp.checked ? (inp.value || '1') : '';
+      } else {
+        fields[inp.name] = inp.value;
+      }
+    });
+  });
+  // 보고서 이름 (액션바, 폼 밖)
+  var nameInp = document.getElementById('report-name');
+  if (nameInp) fields['__report_name'] = nameInp.value || '';
+  // 사진 dataURL (sessionStorage)
+  var photos = {};
+  try {
+    for (var i = 0; i < sessionStorage.length; i++) {
+      var k = sessionStorage.key(i);
+      if (k && k.indexOf(STORAGE_PREFIX) === 0) {
+        var slot = k.substring(STORAGE_PREFIX.length);
+        var v = sessionStorage.getItem(k);
+        if (v) photos[slot] = v;
+      }
+    }
+  } catch (e) { console.warn('[serialize] sessionStorage 읽기 실패', e); }
+  // offset 값
+  var offsets = {};
+  document.querySelectorAll('input[data-offset]').forEach(function(inp) {
+    offsets[inp.getAttribute('data-offset')] = parseFloat(inp.value) || 0;
+  });
+  // 마커
+  var markers = {};
+  if (window._flirDecoded) {
+    for (var n in window._flirDecoded) {
+      var info = window._flirDecoded[n];
+      markers[n] = { sp: info.sp || {}, bx: info.bx || {}, width: info.width, height: info.height, hash: info.hash };
+    }
+  }
+  console.log('[serialize] fields=' + Object.keys(fields).length + ', photos=' + Object.keys(photos).length + ', markers=' + Object.keys(markers).length);
+  return { fields: fields, photos: photos, markers: markers, offsets: offsets };
+}
+
+// JSON 데이터를 폼에 복원
+function populateFormData(data) {
+  if (!data) return;
+  // input 필드 — 폼 안 + 폼 밖 form="report-form" 속성 input 모두
+  if (data.fields) {
+    Object.keys(data.fields).forEach(function(name) {
+      if (name === '__report_name') return;  // 별도 처리
+      // 모든 input(name=일치) 후보 검색
+      var inps = document.querySelectorAll('[name="' + name.replace(/"/g, '\\"') + '"]');
+      inps.forEach(function(inp) {
+        if (inp.type === 'checkbox' || inp.type === 'radio') {
+          inp.checked = !!data.fields[name];
+        } else {
+          inp.value = data.fields[name];
+        }
+      });
+    });
+    if (data.fields['__report_name']) {
+      var nameInp = document.getElementById('report-name');
+      if (nameInp) nameInp.value = data.fields['__report_name'];
+    }
+  }
+  // 사진 복원 — 동기 정렬: sessionStorage 먼저 쓰고 미리보기 + 비동기로 input.files
+  var photoCount = 0, photoRestored = 0;
+  if (data.photos) {
+    var slots = Object.keys(data.photos);
+    photoCount = slots.length;
+    slots.forEach(function(slot) {
+      try {
+        var v = data.photos[slot];
+        try { sessionStorage.setItem(STORAGE_PREFIX + slot, v); } catch (se) { console.warn('sessionStorage full', se); }
+        var obj = (typeof v === 'string') ? JSON.parse(v) : v;
+        if (obj && obj.dataUrl) {
+          renderPreview(slot, obj.dataUrl, obj.name || slot);
+          dataUrlToFile(obj.dataUrl, obj.name || (slot + '.jpg')).then(function(file) {
+            var mainInput = document.getElementById('file_' + slot);
+            if (mainInput) {
+              setInputFile(mainInput, file);
+              photoRestored++;
+              console.log('[populate] photo restored: ' + slot + ' (' + photoRestored + '/' + photoCount + ')');
+            }
+          }).catch(function(err) {
+            console.warn('[populate] dataUrlToFile 실패: ' + slot, err);
+          });
+        }
+      } catch (e) { console.warn('[populate] photo restore err', slot, e); }
+    });
+  }
+  // 마커 + showControls/drawMarkers — 미리보기 DOM이 만들어진 다음 호출
+  if (data.markers) {
+    window._flirDecoded = window._flirDecoded || {};
+    Object.keys(data.markers).forEach(function(n) {
+      window._flirDecoded[n] = data.markers[n];
+    });
+    // 미리보기가 렌더된 후(약간 지연) 컨트롤 + 마커 표시
+    setTimeout(function() {
+      Object.keys(data.markers).forEach(function(n) {
+        try { showControls(n); } catch (e) { console.warn('showControls err', n, e); }
+        try { drawMarkers(n); } catch (e) { console.warn('drawMarkers err', n, e); }
+      });
+      // offset도 같이
+      if (data.offsets) {
+        Object.keys(data.offsets).forEach(function(n) {
+          var inp = document.querySelector('input[data-offset="' + n + '"]');
+          if (inp) inp.value = data.offsets[n];
+          try { reapplyOffset(n); } catch (e) {}
+        });
+      }
+    }, 300);
+  } else if (data.offsets) {
+    setTimeout(function() {
+      Object.keys(data.offsets).forEach(function(n) {
+        var inp = document.querySelector('input[data-offset="' + n + '"]');
+        if (inp) inp.value = data.offsets[n];
+      });
+    }, 200);
+  }
+  console.log('[populate] 완료: fields=' + Object.keys(data.fields || {}).length + ', photos=' + photoCount + ', markers=' + Object.keys(data.markers || {}).length);
+}
+
+// 수동 저장
+function togglePdfPagesAll() {
+  var cbs = document.querySelectorAll('.pdf-pages-bar input[type="checkbox"]');
+  var allChecked = Array.prototype.every.call(cbs, function(cb){ return cb.checked; });
+  cbs.forEach(function(cb){ cb.checked = !allChecked; });
+}
+
+function saveReport() {
+  var nameInp = document.getElementById('report-name');
+  var name = (nameInp.value || '').trim();
+  var siteName = document.body.dataset.siteName;
+  var data = serializeFormData();
+  setAutosaveStatus('saving', '저장 중...');
+  fetch('/api/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name: name, site_name: siteName, data: data, is_draft: false })
+  }).then(function(r){return r.json();}).then(function(res) {
+    if (res.success) {
+      currentReportId = res.id;
+      if (!name) nameInp.value = res.name;
+      setAutosaveStatus('saved', '✓ 저장됨');
+      setTimeout(function(){ setAutosaveStatus('', ''); }, 3000);
+    } else {
+      setAutosaveStatus('error', '저장 실패');
+    }
+  }).catch(function(e) {
+    setAutosaveStatus('error', '저장 실패');
+    console.error('save error', e);
+  });
+}
+
+// (자동 백업 기능 제거됨 — 수동 저장만 사용)
+
+// 불러오기 다이얼로그
+function openLoadDialog() {
+  var siteName = document.body.dataset.siteName;
+  var list = document.getElementById('load-list');
+  list.innerHTML = '<div class="load-empty">불러오는 중...</div>';
+  document.getElementById('load-dialog-bg').classList.remove('hidden');
+  fetch('/api/list?site_name=' + encodeURIComponent(siteName)).then(function(r){return r.json();}).then(function(res) {
+    var reports = (res.reports || []).filter(function(r){ return !r.is_draft; });
+    if (reports.length === 0) {
+      list.innerHTML = '<div class="load-empty">저장된 보고서가 없습니다.</div>';
+      return;
+    }
+    list.innerHTML = '';
+    reports.forEach(function(rep) {
+      var div = document.createElement('div');
+      div.className = 'load-item';
+      var name = document.createElement('div');
+      name.className = 'l-name';
+      name.textContent = rep.name;
+      div.appendChild(name);
+      if (rep.is_draft) {
+        var bdg = document.createElement('span');
+        bdg.className = 'l-draft-badge';
+        bdg.textContent = '자동';
+        div.appendChild(bdg);
+      }
+      var meta = document.createElement('div');
+      meta.className = 'l-meta';
+      meta.textContent = rep.updated_at.replace('T', ' ').substring(0, 16);
+      div.appendChild(meta);
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'l-del';
+      del.textContent = '삭제';
+      del.onclick = function(ev) { ev.stopPropagation(); deleteReport(rep.id, rep.name); };
+      div.appendChild(del);
+      div.onclick = function() { loadReport(rep.id); };
+      list.appendChild(div);
+    });
+  }).catch(function(e) {
+    list.innerHTML = '<div class="load-empty">목록 로딩 실패</div>';
+    console.error(e);
+  });
+}
+
+function closeLoadDialog() {
+  document.getElementById('load-dialog-bg').classList.add('hidden');
+}
+
+function loadReport(id) {
+  fetch('/api/load/' + id).then(function(r){return r.json();}).then(function(res) {
+    if (!res.data) return;
+    // 기존 sessionStorage 클리어
+    try {
+      var toRemove = [];
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf(STORAGE_PREFIX) === 0) toRemove.push(k);
+      }
+      toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
+    } catch (e) {}
+    // 기존 미리보기/마커 클리어
+    document.querySelectorAll('.photo-preview').forEach(function(p) {
+      p.innerHTML = '선택된 파일 없음';
+    });
+    window._flirDecoded = {};
+    populateFormData(res.data);
+    // 보고서 이름: data.fields.__report_name 우선, 없으면 res.name
+    var nameInp = document.getElementById('report-name');
+    if (nameInp && !nameInp.value) nameInp.value = res.name;
+    currentReportId = res.id;
+    closeLoadDialog();
+    setAutosaveStatus('saved', '✓ ' + res.name + ' 불러옴');
+    setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+  }).catch(function(e) {
+    alert('불러오기 실패: ' + e);
+  });
+}
+
+function deleteReport(id, name) {
+  if (!confirm('"' + name + '" 보고서를 삭제하시겠습니까?\n(되돌릴 수 없습니다)')) return;
+  fetch('/api/delete/' + id, { method: 'DELETE' }).then(function(r){return r.json();}).then(function(res) {
+    if (res.success) {
+      if (currentReportId === id) currentReportId = null;
+      openLoadDialog();  // 목록 새로고침
+    } else {
+      alert('삭제 실패');
+    }
+  }).catch(function(e) { alert('삭제 실패: ' + e); });
+}
+
+// 상단 삭제 버튼 = 현재 로드된 보고서 삭제 (없으면 다이얼로그 열기)
+function confirmDeleteCurrent() {
+  if (currentReportId) {
+    var name = document.getElementById('report-name').value || '현재 보고서';
+    deleteReport(currentReportId, name);
+  } else {
+    // 현재 로드된 보고서 없음 → 불러오기 다이얼로그 열어서 거기서 삭제
+    openLoadDialog();
+  }
+}
+
+// 새로 작성 — 폼 초기화
+function confirmNewReport() {
+  if (!confirm('현재 입력된 내용을 모두 지우고 새로 작성하시겠습니까?\n(저장하지 않은 내용은 사라집니다)')) return;
+  // sessionStorage 클리어
+  try {
+    var toRemove = [];
+    for (var i = 0; i < sessionStorage.length; i++) {
+      var k = sessionStorage.key(i);
+      if (k && k.indexOf(STORAGE_PREFIX) === 0) toRemove.push(k);
+    }
+    toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
+  } catch (e) {}
+  // 폼 초기화
+  var form = document.getElementById('report-form');
+  form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(inp) {
+    inp.value = inp.defaultValue || '';
+  });
+  form.querySelectorAll('input[type="file"]').forEach(function(inp) {
+    try { inp.value = ''; } catch (e) {}
+  });
+  document.querySelectorAll('.photo-preview').forEach(function(p) {
+    p.innerHTML = '선택된 파일 없음';
+  });
+  // 마커 + 컨트롤 제거
+  window._flirDecoded = {};
+  document.querySelectorAll('.sp-controls, .bx-controls, .flir-status, .bx-result, .temp-offset').forEach(function(el) {
+    el.remove();
+  });
+  document.getElementById('report-name').value = '';
+  document.getElementById('markers_json').value = '{}';
+  currentReportId = null;
+  setAutosaveStatus('saved', '새로 작성');
+  setTimeout(function(){ setAutosaveStatus('', ''); }, 2000);
+}
+
+// (draft 자동 복원 제거됨)
+
+</script>
+</body>
+</html>
