@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=68">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=71">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -74,6 +74,7 @@ label input{width:100%!important;min-width:0!important;max-width:100%!important;
 .b3-grid-chk{grid-template-columns:repeat(4,1fr);}
 .b3-grid label{font-size:12px;color:#555;}
 .b3-grid input{padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;width:100%;box-sizing:border-box;margin-top:3px;}
+label input[disabled]{background:#f0f0f0;color:#777;cursor:not-allowed;}
 @media (max-width:700px){.b3-grid{grid-template-columns:repeat(2,1fr);}}
 
 /* === 상단 액션 바 === */
@@ -155,10 +156,7 @@ label input{width:100%!important;min-width:0!important;max-width:100%!important;
     <label class="ab-name-label">보고서 이름</label>
     <input type="text" id="report-name" class="ab-name-input" placeholder="예: 2026-06-03 조달청 청사 분기점검">
   </div>
-  <div class="ab-name-row">
-    <label class="ab-name-label">표지 연월</label>
-    <input type="text" id="cover-ym" name="year_month" form="report-form" class="ab-name-input ab-ym-input" placeholder="예: 2026.06" maxlength="8">
-  </div>
+
   <div class="ab-btn-row">
     <button type="button" class="ab-btn ab-btn-del" onclick="confirmDeleteCurrent()" title="현재 보고서 삭제">🗑️ 삭제</button>
     <button type="button" class="ab-btn ab-btn-save" onclick="saveReport()">💾 저장</button>
@@ -195,6 +193,20 @@ label input{width:100%!important;min-width:0!important;max-width:100%!important;
 <input type="hidden" name="site_name" value="{{ site_name }}">
 <input type="hidden" name="markers_json" id="markers_json" value="{}">
 <main>
+<!-- p1 표지 -->
+<section class="block-section">
+<h2>📘 표지 (1페이지)</h2>
+<p class="hint">현장명과 회사명은 사이트별 고정. 연 · 월만 입력하시면 됩니다.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">표지</span><span class="block-title">{{ site_name }} — 점검 및 유지보수 보고서</span></div>
+<div class="meta-row">
+<label>현장명<input type="text" value="{{ site_name }}" disabled></label>
+<label>회사명<input type="text" value="종로전기㈜" disabled></label>
+<label>연 · 월<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
+</div>
+</div>
+</section>
+
 <section class="block-section">
 <h2>붙임3 — 인버터 점검기록표</h2>
 <p class="hint">기본사항은 사이트 PRESET 고정. 운전상황과 점검결과만 입력하세요.</p>
