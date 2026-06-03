@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=72">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=73">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -325,8 +325,8 @@ window.addEventListener('load', function() {
 window.addEventListener('resize', _updateStickyPad);
 // orientation 변경(모바일) 시에도
 window.addEventListener('orientationchange', function() { setTimeout(_updateStickyPad, 200); });
-var MAX_SIDE = 1280;
-var JPEG_QUALITY = 0.85;
+var MAX_SIDE = 900;     // 1280→900 (sessionStorage 부담 절반)
+var JPEG_QUALITY = 0.72;
 
 function renderPreview(name, dataUrl, fname) {
   var preview = document.getElementById('preview_' + name);
@@ -398,9 +398,19 @@ function showPreview(name, input) {
       var existingMarkers = (window._flirDecoded && window._flirDecoded[name]) || null;
       sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
         dataUrl: r.dataUrl, name: file.name,
-        markers: existingMarkers  // 사진 변경 시 마커도 함께 (보통은 신규라 null)
+        markers: existingMarkers
       }));
-    } catch (e) {}
+    } catch (e) {
+      console.error('[showPreview] sessionStorage 가득참:', name, e);
+      try {
+        var statusEl = document.getElementById('autosave-status');
+        if (statusEl) {
+          statusEl.className = 'ab-autosave-status error';
+          statusEl.textContent = '⚠ 저장공간 부족 - 사진 일부 저장불가';
+          setTimeout(function(){ statusEl.textContent = ''; }, 6000);
+        }
+      } catch(_){}
+    }
     var newFile = new File([r.blob], file.name, { type: 'image/jpeg' });
     setInputFile(input, newFile);
     renderPreview(name, r.dataUrl, file.name);
@@ -871,6 +881,8 @@ function drawMarkers(name) {
   prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
   var info = window._flirDecoded[name];
   if (!info) return;
+  // 미리보기에 img가 없으면 마커 표시 안 함 (사진 없는데 마커만 보이는 혼동 방지)
+  if (!prev.querySelector('img')) return;
   var _off = getOffset(name);
   var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
   // 1) 사진 위 SP 마커 — 작은 + 십자가 + 라벨
@@ -1063,11 +1075,17 @@ function populateFormData(data) {
             if (mainInput) {
               setInputFile(mainInput, file);
               photoRestored++;
-              console.log('[populate] photo restored: ' + slot + ' (' + photoRestored + '/' + photoCount + ')');
+              if (photoRestored === photoCount) {
+                setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
+                setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+              }
             }
           }).catch(function(err) {
-            console.warn('[populate] dataUrlToFile 실패: ' + slot, err);
+            console.error('[populate] dataUrlToFile 실패: ' + slot, err);
+            setAutosaveStatus('error', '⚠ 사진 ' + slot + ' 복원 실패');
           });
+        } else {
+          console.warn('[populate] ' + slot + ' dataUrl 없음. obj=', obj);
         }
       } catch (e) { console.warn('[populate] photo restore err', slot, e); }
     });
@@ -1116,7 +1134,11 @@ function saveReport() {
   var name = (nameInp.value || '').trim();
   var siteName = document.body.dataset.siteName;
   var data = serializeFormData();
-  setAutosaveStatus('saving', '저장 중...');
+  var photoCount = Object.keys(data.photos || {}).length;
+  var totalSize = 0;
+  for (var _k in data.photos) totalSize += (data.photos[_k] || '').length;
+  console.log('[save] photos=' + photoCount + ', total=' + Math.round(totalSize/1024) + 'KB');
+  setAutosaveStatus('saving', '저장 중... (사진 ' + photoCount + '장, ' + Math.round(totalSize/1024) + 'KB)');
   fetch('/api/save', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
@@ -1125,8 +1147,8 @@ function saveReport() {
     if (res.success) {
       currentReportId = res.id;
       if (!name) nameInp.value = res.name;
-      setAutosaveStatus('saved', '✓ 저장됨');
-      setTimeout(function(){ setAutosaveStatus('', ''); }, 3000);
+      setAutosaveStatus('saved', '✓ 저장됨 (사진 ' + photoCount + '장)');
+      setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
     } else {
       setAutosaveStatus('error', '저장 실패');
     }
@@ -1204,14 +1226,20 @@ function loadReport(id) {
       p.innerHTML = '선택된 파일 없음';
     });
     window._flirDecoded = {};
+    var loadPhotoCount = Object.keys((res.data && res.data.photos) || {}).length;
+    console.log('[load] photos in data=' + loadPhotoCount);
     populateFormData(res.data);
-    // 보고서 이름: data.fields.__report_name 우선, 없으면 res.name
     var nameInp = document.getElementById('report-name');
     if (nameInp && !nameInp.value) nameInp.value = res.name;
     currentReportId = res.id;
     closeLoadDialog();
-    setAutosaveStatus('saved', '✓ ' + res.name + ' 불러옴');
-    setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+    setAutosaveStatus('saved', '✓ 불러옴 (사진 ' + loadPhotoCount + '장 복원 중)');
+    setTimeout(function(){
+      var el = document.getElementById('autosave-status');
+      if (el && el.textContent.indexOf('복원 중') >= 0) {
+        setAutosaveStatus('', '');
+      }
+    }, 10000);
   }).catch(function(e) {
     alert('불러오기 실패: ' + e);
   });
