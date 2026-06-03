@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=71">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=72">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -85,25 +85,29 @@ label input[disabled]{background:#f0f0f0;color:#777;cursor:not-allowed;}
 .ab-name-input{flex:1;padding:7px 10px;border:1px solid #c8102e;border-radius:5px;font-size:13px;min-width:0;}
 .ab-name-input:focus{outline:0;border-color:#a40d25;box-shadow:0 0 0 2px rgba(200,16,46,0.15);}
 .ab-ym-input{max-width:140px;flex:0 0 auto;}
-.pdf-pages-bar{display:flex;align-items:center;gap:10px;padding:6px 12px;background:#fff5f5;border-top:1px dashed #e5b4b4;font-size:12px;flex-wrap:wrap;}
-.pdf-pages-label{font-weight:600;color:#c8102e;font-size:12px;flex-shrink:0;}
-.pdf-page-cb{display:flex;align-items:center;gap:4px;font-size:12px;color:#333;cursor:pointer;font-weight:500;}
-.pdf-page-cb input{margin:0;cursor:pointer;}
-.pdf-pages-allnone{margin-left:auto;padding:4px 10px;font-size:11px;background:#fff;border:1px solid #c8102e;color:#c8102e;border-radius:4px;cursor:pointer;}
+.pdf-pages-bar{display:flex;align-items:center;gap:8px;padding:4px 10px;background:#fff5f5;border-top:1px solid #e5b4b4;font-size:11px;flex-wrap:nowrap;}
+.pdf-pages-label{font-weight:700;color:#c8102e;font-size:11px;flex-shrink:0;}
+.pdf-page-cb{display:flex;align-items:center;gap:3px;font-size:11px;color:#333;cursor:pointer;font-weight:500;flex-shrink:0;}
+.pdf-page-cb input{margin:0;cursor:pointer;transform:scale(0.95);}
+.pdf-pages-allnone{margin-left:auto;padding:2px 6px;font-size:10px;background:#fff;border:1px solid #c8102e;color:#c8102e;border-radius:3px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
 .pdf-pages-allnone:hover{background:#c8102e;color:#fff;}
-@media (max-width:700px){.pdf-pages-bar{gap:6px;padding:5px 10px;}.pdf-pages-label{width:100%;}.pdf-pages-allnone{margin-left:0;}}
-.ab-btn-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
-.ab-btn{padding:7px 14px;border-radius:5px;border:0;font-size:13px;font-weight:600;cursor:pointer;color:#fff;}
+/* 하단 고정 변형 */
+.pdf-pages-bottom{position:fixed;left:0;right:0;bottom:0;z-index:199;box-shadow:0 -2px 8px rgba(0,0,0,0.10);border-top:1px solid #c8102e;background:#fff5f5;}
+/* 본문 하단 패딩 = 고정 바 높이 */
+body{padding-bottom:42px !important;}
+@media (max-width:700px){.pdf-pages-bar{gap:5px;padding:4px 8px;font-size:10px;}.pdf-pages-label{font-size:10px;}.pdf-page-cb{font-size:10px;gap:2px;}.pdf-page-cb input{transform:scale(0.85);}.pdf-pages-allnone{padding:2px 5px;font-size:9px;}}
+.ab-btn-row{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
+.ab-btn{padding:5px 8px;border-radius:4px;border:0;font-size:12px;font-weight:600;cursor:pointer;color:#fff;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;}
 .ab-btn-del{background:#d32f2f;}.ab-btn-del:hover{background:#b71c1c;}
 .ab-btn-save{background:#2e7d32;}.ab-btn-save:hover{background:#1b5e20;}
 .ab-btn-load{background:#1976d2;}.ab-btn-load:hover{background:#1565c0;}
 .ab-btn-new{background:#757575;}.ab-btn-new:hover{background:#555;}
 .ab-btn-pdf{background:#c8102e;}.ab-btn-pdf:hover{background:#8b0a1f;}
-.ab-autosave-status{font-size:11px;color:#666;margin-left:auto;min-width:120px;text-align:right;}
+.ab-autosave-status{font-size:10px;color:#666;margin-left:6px;min-width:0;flex-shrink:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .ab-autosave-status.saving{color:#ff9800;}
 .ab-autosave-status.saved{color:#2e7d32;}
 .ab-autosave-status.error{color:#c8102e;}
-@media (max-width:700px){.ab-name-row{flex-direction:column;align-items:stretch;gap:4px;}.ab-name-label{min-width:0;}.ab-btn{font-size:12px;padding:6px 10px;}.ab-autosave-status{flex:1;text-align:right;}}
+@media (max-width:700px){.ab-name-row{flex-direction:column;align-items:stretch;gap:3px;}.ab-name-label{min-width:0;font-size:11px;}.ab-name-input{font-size:12px;padding:5px 8px;}.ab-btn{font-size:11px;padding:5px 4px;}.ab-btn-row{gap:3px;}.ab-autosave-status{display:none;}}
 
 /* === 불러오기 다이얼로그 === */
 .load-dialog-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -159,22 +163,24 @@ label input[disabled]{background:#f0f0f0;color:#777;cursor:not-allowed;}
 
   <div class="ab-btn-row">
     <button type="button" class="ab-btn ab-btn-del" onclick="confirmDeleteCurrent()" title="현재 보고서 삭제">🗑️ 삭제</button>
-    <button type="button" class="ab-btn ab-btn-save" onclick="saveReport()">💾 저장</button>
-    <button type="button" class="ab-btn ab-btn-load" onclick="openLoadDialog()">📂 불러오기</button>
-    <button type="button" class="ab-btn ab-btn-new" onclick="confirmNewReport()">📝 새로 작성</button>
-    <button type="button" class="ab-btn ab-btn-pdf" onclick="document.getElementById('report-form').requestSubmit ? document.getElementById('report-form').requestSubmit() : document.getElementById('report-form').submit()">📄 PDF 생성</button>
+    <button type="button" class="ab-btn ab-btn-save" onclick="saveReport()" title="저장">💾 저장</button>
+    <button type="button" class="ab-btn ab-btn-load" onclick="openLoadDialog()" title="불러오기">📂 부름</button>
+    <button type="button" class="ab-btn ab-btn-new" onclick="confirmNewReport()" title="새로 작성">📝 NEW</button>
+    <button type="button" class="ab-btn ab-btn-pdf" onclick="document.getElementById('report-form').requestSubmit ? document.getElementById('report-form').requestSubmit() : document.getElementById('report-form').submit()" title="PDF 생성">📄 PDF</button>
     <span class="ab-autosave-status" id="autosave-status"></span>
-  </div>
-  <div class="pdf-pages-bar">
-    <span class="pdf-pages-label">PDF 포함 페이지:</span>
-    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
-    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3 (인버터)</label>
-    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7 (열화상)</label>
-    <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8 (점검사진)</label>
-    <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체 선택/해제</button>
   </div>
 </div>
 </div><!-- /sticky-top-wrap -->
+
+<!-- 화면 하단 고정 — PDF 포함 페이지 체크박스 -->
+<div class="pdf-pages-bar pdf-pages-bottom">
+  <span class="pdf-pages-label">PDF:</span>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8</label>
+  <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체</button>
+</div>
 
 <!-- 불러오기 다이얼로그 -->
 <div class="load-dialog-bg hidden" id="load-dialog-bg" onclick="if(event.target===this)closeLoadDialog()">
