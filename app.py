@@ -319,22 +319,20 @@ def generate():
         
         step = "PDF 생성"
         year_month = (request.form.get("year_month", "") or "").strip()
-        # v97 — 점검일 입력 시 표지/페이지2의 연월 자동 동기화
+        # v102 — 점검일 입력 시 표지/p2 연월 자동 동기화
         inspection_date = (request.form.get("inspection_date", "") or "").strip()
         if inspection_date and not year_month:
-            import re as _re
-            m = _re.match(r"(20\d{2})년\s*(\d{1,2})월", inspection_date)
+            m = re.match(r"(20\d{2})년\s*(\d{1,2})월", inspection_date)
             if m:
                 year_month = f"{m.group(1)}.{m.group(2).zfill(2)}"
-        # 주요 점검사항 / 점검결과 (6개씩, 빈칸이면 기본값 사용)
+        # 주요 점검사항 / 점검결과 1~10
         p2_items = []
         p2_results = []
-        for i in range(1, 11):  # 1~10
+        for i in range(1, 11):
             iv = (request.form.get(f"p2_item_{i}", "") or "").strip()
             rv = (request.form.get(f"p2_result_{i}", "") or "").strip()
             p2_items.append(iv if iv else None)
             p2_results.append(rv if rv else None)
-        # 모두 None이면 None 리스트로 → 엔진이 기본값 사용
         if not any(p2_items): p2_items = None
         if not any(p2_results): p2_results = None
         # 페이지별 포함 여부
@@ -356,7 +354,7 @@ def generate():
             if v: b3_chk[k] = v
         out_filename = f"보고서_{site_name.replace(' ', '_')}_{date.today().isoformat()}.pdf"
         out_path = os.path.join(REPORT_DIR, out_filename)
-        print(f"[INFO] PDF 생성: ym={year_month!r}, date={inspection_date!r}, cover={include_cover}, p2={include_p2}, p3={include_p3}, b3={include_b3}, b7={include_b7}, b8={include_b8}")
+        print(f"[INFO] PDF 생성: ym={year_month!r}, cover={include_cover}, b3={include_b3}, b7={include_b7}, b8={include_b8}")
         generate_report_pdf(
             site_name=site_name,
             blocks=blocks if include_b7 else [],
@@ -369,11 +367,11 @@ def generate():
             include_p3=include_p3,
             include_p4=include_p4,
             include_b3=include_b3,
-            b3_run=b3_run,
-            b3_chk=b3_chk,
             inspection_date=inspection_date,
             p2_items=p2_items,
             p2_results=p2_results,
+            b3_run=b3_run,
+            b3_chk=b3_chk,
         )
         print(f"[INFO] PDF 생성 성공!")
 

@@ -573,114 +573,101 @@ COVER_YM_BOX = {
 }
 
 def _normalize_ym(year_month: str) -> str:
-    """'2026.06' / '2026-06' / '2026/6' → '2026. 06'."""
-    s = year_month.strip().replace("-", ".").replace("/", ".")
+    """'2026.06'/'2026-06'/'2026/6' → '2026. 06'."""
+    s = (year_month or "").strip().replace("-", ".").replace("/", ".")
     parts = [p.strip() for p in s.split(".") if p.strip()]
     if len(parts) >= 2:
         return f"{parts[0]}. {parts[1].zfill(2)}"
     return s
 
 
-def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
-    """사이트 표지 PDF의 연월 텍스트만 동적으로 교체한 후 이미지로 렌더링.
+def _pil_kr(size_px: int):
+    """DroidSansFallback ImageFont (한글)."""
+    p = os.path.join(_BASE_DIR, "fonts", "DroidSansFallback.ttf")
+    if os.path.exists(p):
+        try: return ImageFont.truetype(p, size_px)
+        except Exception: pass
+    if KR_FONT:
+        try: return ImageFont.truetype(KR_FONT, size_px)
+        except Exception: pass
+    return ImageFont.load_default()
 
-    v94 — 원본 PDF를 그대로 사용해서 모든 텍스트/배치/글꼴/테두리가 원본과 완벽 일치.
-          연월 부분만 PyMuPDF redact으로 교체.
+
+def _pil_ascii(size_px: int):
+    """DejaVuSans ImageFont (ASCII/숫자)."""
+    p = os.path.join(_BASE_DIR, "fonts", "DejaVuSans.ttf")
+    if os.path.exists(p):
+        try: return ImageFont.truetype(p, size_px)
+        except Exception: pass
+    if LATIN_R:
+        try: return ImageFont.truetype(LATIN_R, size_px)
+        except Exception: pass
+    return _pil_kr(size_px)
+
+
+def _draw_mixed(d, x, y, text, size_px, fill="black"):
+    """글자별로 한글/ASCII 폰트 선택해서 그리기."""
+    kr = _pil_kr(size_px)
+    asc = _pil_ascii(size_px)
+    cur_x = x
+    for ch in text:
+        cp = ord(ch)
+        if (0xAC00 <= cp <= 0xD7A3) or (0x3130 <= cp <= 0x318F) or (0x3000 <= cp <= 0x303F):
+            f = kr
+        else:
+            f = asc
+        d.text((cur_x, y), ch, font=f, fill=fill)
+        bb = f.getbbox(ch)
+        cur_x += bb[2] - bb[0]
+    return cur_x
+
+
+def _render_pdf_page_to_img(pdf_path: str):
+    """PDF 파일의 첫 페이지를 2481x3509 PIL Image로 렌더링."""
+    import fitz
+    doc = fitz.open(pdf_path)
+    page = doc[0]
+    scale_x = 2481 / page.rect.width
+    scale_y = 3509 / page.rect.height
+    pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
+    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
+    if img.size != (2481, 3509):
+        img = img.resize((2481, 3509), Image.LANCZOS)
+    return img, page, doc, scale_x, scale_y
+
+
+def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
+    """표지: 원본 PDF를 이미지로 + 연월 영역만 PIL로 덮어쓰기.
+
     year_month: "2026.06" 등. 빈 문자열이면 원본 그대로.
     """
-    import fitz
-    # 1) PDF 원본 우선 (벡터 품질 유지)
     pdf_path = os.path.join(_PDF_TPL_DIR, f"cover_{site_name}.pdf")
     if os.path.exists(pdf_path):
-        doc = fitz.open(pdf_path)
-        page = doc[0]
-        new_ym = _normalize_ym(year_month) if year_month else ""
-        if new_ym:
-            # 원본 텍스트에서 "20YY. MM" 패턴 찾기 (이미 정규화 형식)
-            target_text = None
-            target_bbox = None
-            target_size = None
-            target_font_xref = None
-            for block in page.get_text("dict")["blocks"]:
-                if "lines" not in block:
-                    continue
-                for line in block["lines"]:
-                    for span in line["spans"]:
-                        t = span["text"].strip()
-                        # "20YY. MM" 또는 "20YY.MM" 형태 (연월만)
-                        import re as _re
-                        if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
-                            target_text = t
-                            target_bbox = fitz.Rect(*span["bbox"])
-                            target_size = span["size"]
-                            target_font_xref = block  # not used
-                            break
-                    if target_text:
-                        break
-                if target_text:
-                    break
-
-            if target_bbox is not None:
-                # 폰트 추출 (원본 페이지의 동일 폰트 사용)
-                cover_font_path = None
-                fonts = page.get_fonts()
-                # 해당 span이 어느 font를 쓰는지 찾기
-                target_font_name = None
+        try:
+            img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+            if year_month:
+                new_ym = _normalize_ym(year_month)
+                # 원본 PDF에서 "20YY. MM" 패턴 찾기
+                import re as _re
                 for block in page.get_text("dict")["blocks"]:
-                    if "lines" not in block:
-                        continue
+                    if "lines" not in block: continue
                     for line in block["lines"]:
                         for span in line["spans"]:
-                            if span["text"].strip() == target_text:
-                                target_font_name = span["font"]
-                                break
-                # CIDFont+F1 등 → page.get_fonts에서 매칭 후 추출
-                for xref, ext, ftype, fname, fpref, fenc in fonts:
-                    if fname == target_font_name:
-                        _, _, _, content = doc.extract_font(xref)
-                        cover_font_path = os.path.join(_PDF_TPL_DIR, f"_extracted_{fname}.ttf")
-                        with open(cover_font_path, "wb") as _ff:
-                            _ff.write(content)
-                        break
-
-                # 원본 텍스트 위에 흰 사각형 (redact)
-                pad = 1.0
-                white_rect = fitz.Rect(target_bbox.x0 - pad, target_bbox.y0 - pad,
-                                       target_bbox.x1 + pad, target_bbox.y1 + pad)
-                page.draw_rect(white_rect, color=(1, 1, 1), fill=(1, 1, 1))
-
-                # 새 연월 텍스트 삽입 — 같은 폰트, 같은 크기, 같은 위치
-                try:
-                    if cover_font_path:
-                        page.insert_font(fontname="cf1", fontfile=cover_font_path)
-                        font_name = "cf1"
-                    else:
-                        font_name = "helv"
-                    # 텍스트를 원본과 같은 박스 중앙에 배치
-                    # baseline = bbox.y1 (PDF text origin은 baseline)
-                    # 원본 텍스트 너비 측정해서 같은 위치 (왼쪽 정렬 유지)
-                    page.insert_text(
-                        (target_bbox.x0, target_bbox.y0 + target_size),
-                        new_ym,
-                        fontname=font_name,
-                        fontsize=target_size,
-                        color=(0, 0, 0),
-                    )
-                except Exception as e:
-                    print(f"[WARN] cover insert_text 실패: {e!r}")
-
-        # 2) 렌더링 — A4 2481x3509에 맞춰 스케일
-        scale_x = 2481 / page.rect.width
-        scale_y = 3509 / page.rect.height
-        pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
-        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
-        # 정확한 2481x3509로 리사이즈 (소수점 차이 보정)
-        if img.size != (2481, 3509):
-            img = img.resize((2481, 3509), Image.LANCZOS)
-        doc.close()
-        return img
-
-    # 3) PDF 없으면 기존 PNG 폴백
+                            t = span["text"].strip()
+                            if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
+                                bb = span["bbox"]
+                                size_pt = span["size"]
+                                d = ImageDraw.Draw(img)
+                                pad = 3
+                                d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                             bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+                                size_px = int(size_pt * sy * 0.95)
+                                _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, new_ym, size_px)
+            doc.close()
+            return img
+        except Exception as _e:
+            print(f"[WARN] render_cover PDF 실패: {_e!r}, PNG 폴백")
+    # 폴백 — PNG 사용
     fn = os.path.join(_PDF_TPL_DIR, f"cover_{site_name}.png")
     if not os.path.exists(fn):
         return Image.new("RGB", (2481, 3509), "white")
@@ -692,15 +679,134 @@ def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
     d = ImageDraw.Draw(img)
     d.rectangle([x1, y1, x2, y2], fill="white")
     s = _normalize_ym(year_month)
-    font_path = LATIN_R or KR_FONT
-    try:
-        font = ImageFont.truetype(font_path, 52)
-    except Exception:
-        font = ImageFont.load_default()
-    bbox = d.textbbox((0, 0), s, font=font)
-    tw = bbox[2] - bbox[0]; th = bbox[3] - bbox[1]
-    cx = (x1 + x2) // 2; cy = (y1 + y2) // 2
-    d.text((cx - tw // 2, cy - th // 2 - bbox[1]), s, fill="black", font=font)
+    size_px = 52
+    cx = (x1 + x2) // 2
+    cy = (y1 + y2) // 2 - size_px // 2
+    _draw_mixed(d, cx - len(s)*size_px//4, cy, s, size_px)
+    return img
+
+
+# ============================================================
+# v102 — 페이지 2/3/4: 원본 PDF 그대로 + 페이지 2의 편집 필드만 PIL로 덮어쓰기
+# ============================================================
+DEFAULT_P2_ITEMS = [
+    "1. 특고압 전기설비 외관 점검",
+    "2. 적외선 열화상 진단",
+    "3. 모듈 외관 점검",
+    "4. 전압, 전류, 발전량 등 측정",
+    "5. 인버터 판넬 점검",
+    "6. 접속반 점검",
+]
+DEFAULT_P2_RESULTS = [
+    "1-1. 외관 이상없음",
+    "2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음",
+    "3-1. 모듈외관이 손상되거나 오염된 부분은 없음",
+    "4-1. 전압 전류, 발전량 측정결과 현장 이상 없음",
+    "5-1. 인버터 판넬 이상 없음",
+    "6-1. 접속반 이상 없음",
+]
+
+
+def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
+              items: list = None, results: list = None) -> "Image.Image":
+    """페이지 2 — 점검일/주요점검사항/점검결과/연월만 동적 교체."""
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"p2_{site_name}.pdf")
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    d = ImageDraw.Draw(img)
+
+    # 교체 매핑
+    replacements = {}
+    if inspection_date:
+        import re as _re
+        for block in page.get_text("dict")["blocks"]:
+            if "lines" not in block: continue
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    t = span["text"].strip()
+                    if _re.fullmatch(r"20\d{2}년\s*\d{1,2}월\s*\d{1,2}일", t):
+                        replacements[t] = inspection_date
+    if year_month:
+        new_ym = _normalize_ym(year_month)
+        import re as _re
+        for block in page.get_text("dict")["blocks"]:
+            if "lines" not in block: continue
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    t = span["text"].strip()
+                    if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
+                        replacements[t] = new_ym
+    use_items = list(items) if items else [None] * 10
+    while len(use_items) < 10: use_items.append(None)
+    use_results = list(results) if results else [None] * 10
+    while len(use_results) < 10: use_results.append(None)
+    for i, orig in enumerate(DEFAULT_P2_ITEMS):
+        new = use_items[i]
+        if new and new.strip() and new != orig:
+            replacements[orig] = new
+    for i, orig in enumerate(DEFAULT_P2_RESULTS):
+        new = use_results[i]
+        if new and new.strip() and new != orig:
+            replacements[orig] = new
+
+    # 1) PDF spans을 순회하면서 redact + PIL로 교체 텍스트 그리기
+    for block in page.get_text("dict")["blocks"]:
+        if "lines" not in block: continue
+        for line in block["lines"]:
+            for span in line["spans"]:
+                orig = span["text"]
+                new_text = replacements.get(orig) or replacements.get(orig.strip())
+                if not new_text or new_text == orig.strip(): continue
+                bb = span["bbox"]
+                size_pt = span["size"]
+                pad = 2
+                d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                             bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+                size_px = int(size_pt * sy * 0.95)
+                _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, new_text, size_px)
+
+    # 2) 추가 항목 7~10 (items) / 결과 7-1~10-1 (results)
+    items_x_pdf = 192.5
+    items_y_start = 272.6
+    items_dy = 12.9
+    items_size_pt = 10.6
+    results_y_start = 447.5
+    size_px_extra = int(items_size_pt * sy * 0.95)
+    for i in range(6, 10):
+        txt = use_items[i]
+        if txt and txt.strip():
+            x = items_x_pdf * sx
+            y = (items_y_start + i * items_dy) * sy
+            _draw_mixed(d, x, y, txt, size_px_extra)
+    for i in range(6, 10):
+        txt = use_results[i]
+        if txt and txt.strip():
+            x = items_x_pdf * sx
+            y = (results_y_start + i * items_dy) * sy
+            _draw_mixed(d, x, y, txt, size_px_extra)
+
+    doc.close()
+    return img
+
+
+def render_p3(site_name: str) -> "Image.Image":
+    """페이지 3 — 원본 그대로."""
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"p3_{site_name}.pdf")
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
+    doc.close()
+    return img
+
+
+def render_p4(site_name: str) -> "Image.Image":
+    """페이지 4 — 원본 그대로."""
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"p4_{site_name}.pdf")
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
+    doc.close()
     return img
 
 
@@ -722,309 +828,6 @@ def _has_korean(s: str) -> bool:
         cp = ord(ch)
         if 0xAC00 <= cp <= 0xD7A3: return True
     return False
-
-
-# ============================================================
-# v95/v96 — 페이지 2/3: 원본 PDF 그대로 사용 + 편집 가능 텍스트만 redact + 교체
-# ============================================================
-# 기본값 — 사용자가 수정 안 하면 이 값 사용
-DEFAULT_P2 = {
-    "inspection_date": "",   # "2026년 05월 08일"
-    "items": [               # 주요 점검사항 1~6 (고정 기본)
-        "1. 특고압 전기설비 외관 점검",
-        "2. 적외선 열화상 진단",
-        "3. 모듈 외관 점검",
-        "4. 전압, 전류, 발전량 등 측정",
-        "5. 인버터 판넬 점검",
-        "6. 접속반 점검",
-    ],
-    "results": [             # 점검결과 및 종합의견 1-1 ~ 6-1
-        "1-1. 외관 이상없음",
-        "2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음",
-        "3-1. 모듈외관이 손상되거나 오염된 부분은 없음",
-        "4-1. 전압 전류, 발전량 측정결과 현장 이상 없음",
-        "5-1. 인버터 판넬 이상 없음",
-        "6-1. 접속반 이상 없음",
-    ],
-}
-
-
-def _extract_page_font(doc, page, target_font_name, save_dir):
-    """페이지에서 사용하는 폰트 추출 → ttf 파일 경로 반환."""
-    fonts = page.get_fonts()
-    for xref, ext, ftype, fname, fpref, fenc in fonts:
-        if fname == target_font_name:
-            try:
-                _, _, _, content = doc.extract_font(xref)
-                path = os.path.join(save_dir, f"_extracted_{fname}.ttf")
-                with open(path, "wb") as f:
-                    f.write(content)
-                return path
-            except Exception as e:
-                print(f"[WARN] font extract fail {fname}: {e}")
-                return None
-    return None
-
-
-def _patch_pdf_text(page, doc, replacements):
-    """페이지의 특정 텍스트 span을 새 텍스트로 교체.
-
-    replacements: dict mapping original_text → new_text.
-    원본 폰트는 subset이라 모든 한글이 안 들어있을 수 있어서,
-    안전을 위해 DroidSansFallback(번들된 한글 풀셋) 사용.
-    """
-    import fitz
-    if not replacements:
-        return
-    # v100 — 모든 글자 지원하는 한글 폰트 사용 (원본 CIDFont는 글리프 부족)
-    kr_font_path = None
-    candidates = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DroidSansFallback.ttf"),
-        "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            kr_font_path = c
-            break
-    extracted_fonts = {}  # font_name → ttf path
-    page_dict = page.get_text("dict")
-    for block in page_dict["blocks"]:
-        if "lines" not in block:
-            continue
-        for line in block["lines"]:
-            for span in line["spans"]:
-                orig = span["text"]
-                # 원본 텍스트가 replacements에 있으면 (정확히 또는 strip 후 일치)
-                new_text = None
-                if orig in replacements:
-                    new_text = replacements[orig]
-                elif orig.strip() in replacements:
-                    new_text = replacements[orig.strip()]
-                if new_text is None:
-                    continue
-                if new_text == orig.strip():
-                    continue  # 변경 없음
-                bbox = fitz.Rect(*span["bbox"])
-                font_name = span["font"]
-                font_size = span["size"]
-                # 원본 텍스트 위에 흰 사각형 (살짝 여유)
-                pad = 0.5
-                cover_rect = fitz.Rect(bbox.x0 - pad, bbox.y0 - pad,
-                                       bbox.x1 + pad, bbox.y1 + pad)
-                page.draw_rect(cover_rect, color=(1, 1, 1), fill=(1, 1, 1))
-                # v100 — 원본 subset 폰트 대신 DroidSansFallback(풀셋) 사용
-                pdf_font = None
-                try:
-                    if kr_font_path:
-                        pdf_font = "drsk"
-                        try:
-                            page.insert_font(fontname=pdf_font, fontfile=kr_font_path)
-                        except Exception:
-                            pass
-                    else:
-                        pdf_font = "helv"
-                    # 텍스트 삽입 위치: bbox.x0 + baseline
-                    # baseline ≈ bbox.y1 - descent. PDF text origin = baseline
-                    # 안전한 baseline: bbox.y0 + font_size * 0.85
-                    baseline_y = bbox.y0 + font_size * 0.85
-                    page.insert_text(
-                        (bbox.x0, baseline_y),
-                        new_text,
-                        fontname=pdf_font,
-                        fontsize=font_size,
-                        color=(0, 0, 0),
-                    )
-                except Exception as e:
-                    print(f"[WARN] insert_text fail {orig!r} → {new_text!r}: {e}")
-
-
-def _pil_kr_font(size_px: int):
-    """DroidSansFallback ImageFont (한글)."""
-    candidates = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DroidSansFallback.ttf"),
-        "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            try:
-                return ImageFont.truetype(c, size_px)
-            except Exception:
-                continue
-    return ImageFont.load_default()
-
-
-def _pil_ascii_font(size_px: int):
-    """DejaVuSans ImageFont (ASCII/숫자)."""
-    candidates = [
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DejaVuSans.ttf"),
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            try:
-                return ImageFont.truetype(c, size_px)
-            except Exception:
-                continue
-    return _pil_kr_font(size_px)
-
-
-def _draw_mixed(d, x, y, text, size_px, fill="black"):
-    """글자별로 한글/ASCII 폰트 선택해서 그리기. 시작 x 픽셀 위치 반환."""
-    kr = _pil_kr_font(size_px)
-    ascii_f = _pil_ascii_font(size_px)
-    for ch in text:
-        cp = ord(ch)
-        if (0xAC00 <= cp <= 0xD7A3) or (0x3130 <= cp <= 0x318F) or (0x3000 <= cp <= 0x303F):
-            f = kr
-        else:
-            f = ascii_f
-        d.text((x, y), ch, font=f, fill=fill)
-        bb = f.getbbox(ch)
-        x += bb[2] - bb[0]
-    return x
-
-
-def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
-              items: list = None, results: list = None) -> "Image.Image":
-    """페이지 2 — 원본 PDF에 편집 가능 텍스트만 덮어쓴 후 이미지로 변환.
-
-    year_month: 표지와 동일한 연월 (자동 동기화)
-    inspection_date: '2026년 05월 08일' 형식
-    items: 주요 점검사항 6개 리스트 (None이면 기본값)
-    results: 점검결과 및 종합의견 6개 리스트 (None이면 기본값)
-    """
-    import fitz
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"p2_{site_name}.pdf")
-    if not os.path.exists(pdf_path):
-        return Image.new("RGB", (2481, 3509), "white")
-    doc = fitz.open(pdf_path)
-    page = doc[0]
-
-    # 교체할 텍스트 매핑 (원본 → 새 텍스트)
-    replacements = {}
-    # 점검일
-    orig_date_candidates = [s for s in [
-        "2026년 05월 08일", "2026년 04월 08일", "2026년 05월 09일", "2026년 04월 09일",
-    ]]
-    if inspection_date:
-        # 페이지 내 "20XX년 XX월 XX일" 패턴 찾아서 교체
-        for block in page.get_text("dict")["blocks"]:
-            if "lines" not in block: continue
-            for line in block["lines"]:
-                for span in line["spans"]:
-                    t = span["text"].strip()
-                    import re as _re
-                    if _re.fullmatch(r"20\d{2}년\s*\d{1,2}월\s*\d{1,2}일", t):
-                        replacements[t] = inspection_date
-    # year_month (페이지 2에도 있음)
-    if year_month:
-        new_ym = _normalize_ym(year_month)
-        for block in page.get_text("dict")["blocks"]:
-            if "lines" not in block: continue
-            for line in block["lines"]:
-                for span in line["spans"]:
-                    t = span["text"].strip()
-                    import re as _re
-                    if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
-                        replacements[t] = new_ym
-    # 주요 점검사항 1~6 (기존 위치)
-    use_items = list(items) if items else [None]*10
-    while len(use_items) < 10: use_items.append(None)
-    for i, orig in enumerate(DEFAULT_P2["items"]):
-        new = use_items[i]
-        if new and new != orig:
-            replacements[orig] = new
-    # 점검결과 1-1 ~ 6-1
-    use_results = list(results) if results else [None]*10
-    while len(use_results) < 10: use_results.append(None)
-    for i, orig in enumerate(DEFAULT_P2["results"]):
-        new = use_results[i]
-        if new and new != orig:
-            replacements[orig] = new
-
-    # v100 — PyMuPDF text 삽입 비활성화 (폰트 글리프 문제 회피)
-    # 1) 원본 PDF를 그대로 이미지로 렌더링
-    scale_x = 2481 / page.rect.width
-    scale_y = 3509 / page.rect.height
-    pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
-    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
-    if img.size != (2481, 3509):
-        img = img.resize((2481, 3509), Image.LANCZOS)
-
-    # 2) PIL로 redact + 새 텍스트 그리기 (DroidSansFallback로 한글/ASCII 모두 OK)
-    d = ImageDraw.Draw(img)
-    page_dict = page.get_text("dict")
-    for block in page_dict["blocks"]:
-        if "lines" not in block: continue
-        for line in block["lines"]:
-            for span in line["spans"]:
-                orig = span["text"]
-                new_text = None
-                if orig in replacements: new_text = replacements[orig]
-                elif orig.strip() in replacements: new_text = replacements[orig.strip()]
-                if new_text is None or new_text == orig.strip(): continue
-                bbox = span["bbox"]
-                size_pt = span["size"]
-                pad = 2
-                x1 = bbox[0] * scale_x - pad
-                y1 = bbox[1] * scale_y - pad
-                x2 = bbox[2] * scale_x + pad
-                y2 = bbox[3] * scale_y + pad
-                d.rectangle([x1, y1, x2, y2], fill="white")
-                size_px = int(size_pt * scale_y * 0.95)
-                _draw_mixed(d, bbox[0] * scale_x, bbox[1] * scale_y - 1, new_text, size_px)
-
-    # 3) 추가 항목 7~10 / 결과 7-1~10-1
-    items_x_pdf = 192.5
-    items_y_start = 272.6
-    items_dy = 12.9
-    items_size_pt = 10.6
-    results_y_start = 447.5
-    size_px_extra = int(items_size_pt * scale_y * 0.95)
-    for i in range(6, 10):
-        txt = use_items[i]
-        if txt:
-            x = items_x_pdf * scale_x
-            y = (items_y_start + i * items_dy) * scale_y
-            _draw_mixed(d, x, y, txt, size_px_extra)
-    for i in range(6, 10):
-        txt = use_results[i]
-        if txt:
-            x = items_x_pdf * scale_x
-            y = (results_y_start + i * items_dy) * scale_y
-            _draw_mixed(d, x, y, txt, size_px_extra)
-
-    doc.close()
-    return img
-
-
-def _render_static_page(site_name: str, prefix: str) -> "Image.Image":
-    """원본 PDF 페이지를 그대로 이미지로 반환 (편집 없음)."""
-    import fitz
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"{prefix}_{site_name}.pdf")
-    if not os.path.exists(pdf_path):
-        return Image.new("RGB", (2481, 3509), "white")
-    doc = fitz.open(pdf_path)
-    page = doc[0]
-    scale_x = 2481 / page.rect.width
-    scale_y = 3509 / page.rect.height
-    pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
-    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
-    if img.size != (2481, 3509):
-        img = img.resize((2481, 3509), Image.LANCZOS)
-    doc.close()
-    return img
-
-
-def render_p3(site_name: str) -> "Image.Image":
-    """페이지 3 (붙임 서류 목록) — 원본 그대로."""
-    return _render_static_page(site_name, "p3")
-
-
-def render_p4(site_name: str) -> "Image.Image":
-    """페이지 4 (안전진단장비) — 원본 그대로."""
-    return _render_static_page(site_name, "p4")
-
 
 def render_b3(site_name: str, run_values: dict, chk_values: dict, page_num: int = 6) -> "Image.Image":
     """붙임3 인버터 점검기록표 — 사이트별 PNG 위에 운전상황+점검결과 덮어쓰기."""
@@ -1139,57 +942,6 @@ SITE_PRESETS = {
             {"target": "수변전실", "voltage": "22,900/440V", "condition": "외기 12.7°C",
              "upper_label": "ACB 1차", "upper_pts": [59.7, 65, 57.7],
              "lower_label": "INVERTER", "lower_pts": [44.4, None, None]},
-            {"target": "변압기,축전지", "voltage": "350/220V", "condition": "외기 12.7°C",
-             "upper_label": "소내용TR", "upper_pts": [34.7, 38.1, 36.1],
-             "lower_label": "축전지1~3", "lower_pts": [23.7, 23.7, None]},
-            {"target": "축전지", "voltage": "350/220V", "condition": "외기 12.7°C",
-             "upper_label": "축전지4~6", "upper_pts": [24.2, 24.3, None],
-             "lower_label": "축전지7~9", "lower_pts": [24.4, 24.8, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-1 차단기", "upper_pts": [39.1, 38.6, None],
-             "lower_label": "MJB-1", "lower_pts": [47, 39, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-2 차단기", "upper_pts": [38.2, 42.1, None],
-             "lower_label": "MJB-2", "lower_pts": [47.7, 36.1, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-3 차단기", "upper_pts": [32.7, 39.5, None],
-             "lower_label": "MJB-3", "lower_pts": [45.4, 38.3, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-4 차단기", "upper_pts": [36.7, 35.5, None],
-             "lower_label": "MJB-4", "lower_pts": [45.4, 38.3, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-5 차단기", "upper_pts": [34.7, 36.3, None],
-             "lower_label": "MJB-5", "lower_pts": [43.5, 36.1, None]},
-            {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
-             "upper_label": "MJB-6 차단기", "upper_pts": [32.3, 33.3, None],
-             "lower_label": "MJB-6", "lower_pts": [42.7, 36.9, None]},
-        ],
-        "b8_captions": [
-            ["수변전실 외관", "VCB 패널", "MCCB 패널", "접지단자 점검"],
-            ["축전지실 외관", "인버터 외관", "MJB 외관", "기상센서함 점검"],
-        ],
-    },
-    "티튜브": {
-        "voltage_default": "22,900V",
-        "blocks": [
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "CH", "upper_pts": [22.2, 22.2, 21.6],
-             "lower_label": "LBS", "lower_pts": [21.3, 21.6, 21.3]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "POWER FUSE", "upper_pts": [28.9, 29.6, 28.8],
-             "lower_label": "LA", "lower_pts": [21.4, 21.6, 21.5]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "MOF", "upper_pts": [21.7, 21.7, 21.9],
-             "lower_label": "PT", "lower_pts": [33.2, 33.1, 23.3]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "CT", "upper_pts": [21.3, 21.2, 21.1],
-             "lower_label": "VCB", "lower_pts": [21.6, None, None]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "TR", "upper_pts": [26.5, 24.1, 26],
-             "lower_label": "ACB", "lower_pts": [24.7, None, None]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "ACB 1차", "upper_pts": [32.3, 35.9, 35.1],
-             "lower_label": "INVERTER", "lower_pts": [44.7, None, None]},
             {"target": "변압기,축전지", "voltage": "350/220V", "condition": "외기 23.4°C",
              "upper_label": "소내용TR", "upper_pts": [28.9, 28.5, 28.3],
              "lower_label": "축전지1~3", "lower_pts": [20.4, 20.3, 20]},
@@ -1234,24 +986,41 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True):
+    """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
+
+    year_month: "2026.06" 형식. 표지/페이지2에 표시.
+    inspection_date: 페이지2 점검일 '2026년 06월 03일' 형식.
+    p2_items: 주요 점검사항 1~10 (None이면 기본값).
+    p2_results: 점검결과 1~10 (None이면 기본값).
+    """
     pages = []
     if include_cover:
-        try: pages.append(render_cover(site_name, year_month))
-        except Exception as _e: print(f"[WARN] 표지 합성 실패: {_e}")
+        try:
+            pages.append(render_cover(site_name, year_month))
+        except Exception as _ce:
+            print(f"[WARN] 표지 합성 실패: {_ce}")
     if include_p2:
-        try: pages.append(render_p2(site_name, year_month=year_month,
-                                    inspection_date=inspection_date,
-                                    items=p2_items, results=p2_results))
-        except Exception as _e: print(f"[WARN] 페이지2 합성 실패: {_e}")
+        try:
+            pages.append(render_p2(site_name, year_month=year_month,
+                                   inspection_date=inspection_date,
+                                   items=p2_items, results=p2_results))
+        except Exception as _e:
+            print(f"[WARN] 페이지2 합성 실패: {_e}")
     if include_p3:
-        try: pages.append(render_p3(site_name))
-        except Exception as _e: print(f"[WARN] 페이지3 합성 실패: {_e}")
+        try:
+            pages.append(render_p3(site_name))
+        except Exception as _e:
+            print(f"[WARN] 페이지3 합성 실패: {_e}")
     if include_p4:
-        try: pages.append(render_p4(site_name))
-        except Exception as _e: print(f"[WARN] 페이지4 합성 실패: {_e}")
+        try:
+            pages.append(render_p4(site_name))
+        except Exception as _e:
+            print(f"[WARN] 페이지4 합성 실패: {_e}")
     if include_b3:
-        try: pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _e: print(f"[WARN] 붙임3 합성 실패: {_e}")
+        try:
+            pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
+        except Exception as _b3e:
+            print(f"[WARN] 붙임3 합성 실패: {_b3e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
