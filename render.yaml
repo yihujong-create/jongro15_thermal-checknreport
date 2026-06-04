@@ -5,7 +5,7 @@ services:
     plan: free
     region: singapore
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 300 --max-requests 50 --max-requests-jitter 10 --preload
     healthCheckPath: /healthz
     envVars:
       - key: APP_PASSWORD
@@ -17,6 +17,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.7
     disk:
-      name: thermal-data
-      mountPath: /var/data
-      sizeGB: 1
+      name: the

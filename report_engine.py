@@ -1083,17 +1083,15 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         page_num += 1
     if not pages:
         raise ValueError("PDF에 포함된 페이지가 없습니다. 'PDF 포함 페이지'에서 최소 1개 이상 체크해주세요.")
-    # v104 — 모든 페이지 A4 (2481x3509 @ 300 DPI = 210x297mm)로 통일
-    A4_PX = (2481, 3509)
-    norm_pages = []
-    for p in pages:
+    # v106 — A4 200 DPI로 다운샘플 (메모리 절약: 25MB→11MB per page, OOM 방지)
+    # 1654x2339 @ 200 DPI = 210x297mm (정확한 A4)
+    import gc
+    A4_PX = (1654, 2339)
+    # 한 페이지씩 처리해서 메모리 누적 방지
+    first = pages[0].convert("RGB")
+    if first.size != A4_PX:
+        first = first.resize(A4_PX, Image.LANCZOS)
+    append_imgs = []
+    for p in pages[1:]:
         rgb = p.convert("RGB")
-        if rgb.size != A4_PX:
-            rgb = rgb.resize(A4_PX, Image.LANCZOS)
-        norm_pages.append(rgb)
-    norm_pages[0].save(
-        out_path, "PDF", resolution=300.0,
-        save_all=True,
-        append_images=norm_pages[1:],
-    )
-    return out_path
+   
