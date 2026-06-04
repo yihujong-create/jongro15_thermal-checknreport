@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=75">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=76">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -144,6 +144,16 @@ body{padding-bottom:42px !important;}
 <div class="photo-input">
 <span class="photo-label">{{ label }}</span>
 <label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">🔥</span><span class="btn-txt">사진 선택</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+{#- 붙임8 점검사진용 (capture 없음 → 모바일에서 OS 선택창: 카메라/갤러리 모두) -#}
+{%- macro photo_input_b8(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가/선택</span></label>
 <input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
 <div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
 </div>
@@ -293,7 +303,7 @@ body{padding-bottom:42px !important;}
 {% for cap in page %}
 <div class="b8-slot">
 <label class="b8-caption">캡션<input type="text" name="b8_{{ page_idx }}_{{ loop.index0 }}_caption" value="{{ cap }}"></label>
-{{ photo_input('b8_' ~ page_idx ~ '_' ~ loop.index0 ~ '_photo', '점검사진') }}
+{{ photo_input_b8('b8_' ~ page_idx ~ '_' ~ loop.index0 ~ '_photo', '점검사진') }}
 </div>
 {% endfor %}
 </div>
