@@ -148,6 +148,52 @@ def site_form(site_name):
                            today=date.today().isoformat())
 
 
+# ============================================================
+# v88 — 사진 슬롯 해석: request.files에 없으면 hidden form input(__photo__<slot>) → DB photo_id → 임시 파일 저장
+# ============================================================
+def _slot_to_temp_path(site_name: str, slot: str, payload: str) -> str | None:
+    """payload는 JSON 문자열: {photo_id: N, name: "..."} 또는 {dataUrl: "...", name:"..."}
+       성공 시 임시 파일 경로 반환, 실패 시 None."""
+    import base64 as _b64, hashlib as _h
+    try:
+        obj = json.loads(payload) if isinstance(payload, str) else payload
+        if not isinstance(obj, dict): return None
+        data_url = None
+        if obj.get("photo_id"):
+            conn = get_db()
+            row = conn.execute("SELECT mime, data_b64 FROM saved_photos WHERE id=?", (int(obj["photo_id"]),)).fetchone()
+            conn.close()
+            if not row:
+                print(f"[WARN] photo_id={obj.get('photo_id')} DB에 없음 (slot={slot})")
+                return None
+            data_url = f"data:{row['mime']};base64,{row['data_b64']}"
+        elif obj.get("dataUrl"):
+            data_url = obj["dataUrl"]
+        if not data_url or "," not in data_url:
+            return None
+        head, b64 = data_url.split(",", 1)
+        # mime 추출
+        mime = "image/jpeg"
+        if head.startswith("data:") and ";" in head:
+            mime = head[5:head.index(";")]
+        ext = "jpg"
+        if "png" in mime: ext = "png"
+        elif "webp" in mime: ext = "webp"
+        try:
+            raw = _b64.b64decode(b64)
+        except Exception:
+            return None
+        sha = _h.sha1(raw).hexdigest()[:12]
+        fname = secure_filename(f"{site_name}_slot_{slot}_{sha}.{ext}")
+        path = os.path.join(UPLOAD_DIR, fname)
+        with open(path, "wb") as f:
+            f.write(raw)
+        return path
+    except Exception as e:
+        print(f"[WARN] _slot_to_temp_path 실패 slot={slot}: {e!r}")
+        return None
+
+
 @app.route("/generate", methods=["POST"])
 @login_required
 def generate():
@@ -188,36 +234,45 @@ def generate():
 
         step = "사진 저장"
         photos = {}
+        # 슬롯명 → 실제 path 변환: 1차 multipart files, 2차 hidden __photo__<slot>
+        def _resolve_slot(slot_name: str) -> str | None:
+            # 1) request.files (즉시 업로드된 새 파일)
+            f = request.files.get(slot_name)
+            if f and f.filename:
+                try:
+                    fname = secure_filename(f"{site_name}_{slot_name}_{f.filename}")
+                    p = os.path.join(UPLOAD_DIR, fname)
+                    f.save(p)
+                    return p
+                except Exception as _fe:
+                    print(f"[WARN] 사진 저장 실패 {slot_name}: {_fe!r}")
+            # 2) hidden input __photo__<slot> (불러온 보고서, sessionStorage의 photo_id JSON)
+            payload = request.form.get(f"__photo__{slot_name}")
+            if payload:
+                p = _slot_to_temp_path(site_name, slot_name, payload)
+                if p:
+                    print(f"[INFO] 사진 복원 (photo_id 경로): slot={slot_name}")
+                    return p
+            return None
+
         for i in range(len(blocks)):
             for kind in ["uv", "ut", "lv", "lt"]:
                 field = f"photo_{i}_{kind}"
-                f = request.files.get(field)
-                if f and f.filename:
-                    try:
-                        fname = secure_filename(f"{site_name}_b{i}_{kind}_{f.filename}")
-                        path = os.path.join(UPLOAD_DIR, fname)
-                        f.save(path)
-                        photos.setdefault(i, {})[kind] = path
-                    except Exception as _fe:
-                        print(f"[WARN] 사진 저장 실패 {field}: {_fe!r}")
-        print(f"[INFO] 사진 {sum(len(v) for v in photos.values())}장 저장")
+                p = _resolve_slot(field)
+                if p:
+                    photos.setdefault(i, {})[kind] = p
+        print(f"[INFO] 사진 {sum(len(v) for v in photos.values())}장 (multipart + photo_id 합계)")
 
         step = "붙임8 처리"
         b8_pages = []
-        for page_idx in range(2):
+        for page_idx in range(len(preset.get("b8_captions", []))):
             items = []
-            for slot in range(4):
+            page_captions = preset["b8_captions"][page_idx]
+            for slot in range(len(page_captions)):
                 caption = (request.form.get(f"b8_{page_idx}_{slot}_caption", "") or "").strip()
-                f = request.files.get(f"b8_{page_idx}_{slot}_photo")
-                path = None
-                if f and f.filename:
-                    try:
-                        fname = secure_filename(f"{site_name}_b8_{page_idx}_{slot}_{f.filename}")
-                        path = os.path.join(UPLOAD_DIR, fname)
-                        f.save(path)
-                    except Exception as _fe:
-                        print(f"[WARN] b8 사진 저장 실패: {_fe!r}")
-                items.append((path, caption))
+                slot_name = f"b8_{page_idx}_{slot}_photo"
+                p = _resolve_slot(slot_name)
+                items.append((p, caption))
             b8_pages.append(items)
 
         step = "markers_json 파싱"
@@ -517,32 +572,33 @@ def api_delete(report_id):
 def api_photo_upload():
     """클라이언트가 사진 dataURL을 POST → DB에 저장 → photo_id 반환.
     동일 sha면 기존 ID 재사용 (중복 저장 방지)."""
+    import base64 as _b64, hashlib as _h
     payload = request.get_json(silent=True) or {}
     data_url = payload.get("dataUrl") or ""
-    if not data_url.startswith("data:"):
-        return jsonify({"error": "invalid dataUrl"}), 400
-    # "data:image/jpeg;base64,XXXX" → mime, b64
+    if not data_url or "," not in data_url:
+        return jsonify({"error": "dataUrl 필요"}), 400
+    head, b64 = data_url.split(",", 1)
+    mime = "image/jpeg"
+    if head.startswith("data:") and ";" in head:
+        mime = head[5:head.index(";")]
     try:
-        head, b64 = data_url.split(",", 1)
-        mime = head.split(";")[0].split(":")[1]
+        raw = _b64.b64decode(b64)
     except Exception:
-        return jsonify({"error": "parse fail"}), 400
-    if not b64:
-        return jsonify({"error": "empty body"}), 400
-    sha = hashlib.sha256(b64.encode("ascii")).hexdigest()
-    size = len(b64)
+        return jsonify({"error": "base64 디코드 실패"}), 400
+    sha = _h.sha256(raw).hexdigest()
+    size = len(raw)
+    now = datetime.now().isoformat(timespec="seconds")
     conn = get_db()
     row = conn.execute("SELECT id FROM saved_photos WHERE sha=?", (sha,)).fetchone()
     if row:
         conn.close()
-        return jsonify({"id": row["id"], "reused": True, "size": size})
-    now = datetime.now().isoformat(timespec="seconds")
+        return jsonify({"id": row["id"], "size": size, "dedup": True})
     cur = conn.execute("INSERT INTO saved_photos(sha,data_b64,mime,size_bytes,created_at) VALUES(?,?,?,?,?)",
                        (sha, b64, mime, size, now))
+    pid = cur.lastrowid
     conn.commit()
-    new_id = cur.lastrowid
     conn.close()
-    return jsonify({"id": new_id, "reused": False, "size": size})
+    return jsonify({"id": pid, "size": size, "dedup": False})
 
 
 @app.route("/api/photo/<int:photo_id>")
@@ -578,6 +634,7 @@ def api_draft(site_name):
             "data": json.loads(row["data_json"]),
         }
     })
+
 
 @app.route("/healthz")
 def healthz():

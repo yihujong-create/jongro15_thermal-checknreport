@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=86">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=88">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -550,6 +550,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
 document.addEventListener('submit', function(ev) {
   if (ev.target && ev.target.action && ev.target.action.indexOf('/generate') !== -1) {
+    var form = ev.target;
     // 폼 제출 직전 SP/BX 마커 정보를 hidden field에 넣음
     try {
       var markers = {};
@@ -561,8 +562,30 @@ document.addEventListener('submit', function(ev) {
       var markersStr = JSON.stringify(markers);
       document.getElementById('markers_json').value = markersStr;
       console.log('[FORM SUBMIT] markers_json (len=' + markersStr.length + '):', markersStr.substring(0, 500));
-      console.log('[FORM SUBMIT] _flirDecoded:', window._flirDecoded);
     } catch(e) { console.warn('markers 직렬화 실패', e); }
+    // v88 — sessionStorage의 photo_id/dataUrl을 hidden input(__photo__<slot>)으로 주입
+    // (PC에서 저장 후 모바일에서 불러왔을 때 input.files가 비어있어도 PDF 생성 가능하도록)
+    try {
+      form.querySelectorAll('input[type="hidden"][data-photo-slot]').forEach(function(el){ el.remove(); });
+      var injected = 0;
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf(STORAGE_PREFIX) === 0) {
+          var slot = k.substring(STORAGE_PREFIX.length);
+          var v = sessionStorage.getItem(k);
+          if (v) {
+            var h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = '__photo__' + slot;
+            h.value = v;
+            h.setAttribute('data-photo-slot', slot);
+            form.appendChild(h);
+            injected++;
+          }
+        }
+      }
+      console.log('[FORM SUBMIT] hidden 사진 주입: ' + injected + '개');
+    } catch(e) { console.warn('hidden 사진 주입 실패', e); }
     setTimeout(function() {
       try {
         var toRemove = [];
@@ -1522,42 +1545,12 @@ function confirmNewReport() {
 }
 
 // PDF 생성 시 사진 dataURL을 hidden input으로 폼에 첨부 → form submit
+// (submit 리스너에서도 동일 작업 수행됨 — 안전망 차원)
 function generatePdf(ev) {
   if (ev && ev.preventDefault) ev.preventDefault();
   var form = document.getElementById('report-form');
-  if (!form) return false;
-  // sessionStorage의 모든 사진 → hidden input으로 첨부
-  // (서버는 photo_id 또는 dataUrl 둘 다 처리)
-  // 기존 hidden 사진 input 제거
-  form.querySelectorAll('input[type="hidden"][data-photo-slot]').forEach(function(el){ el.remove(); });
-  try {
-    for (var i = 0; i < sessionStorage.length; i++) {
-      var k = sessionStorage.key(i);
-      if (k && k.indexOf(STORAGE_PREFIX) === 0) {
-        var slot = k.substring(STORAGE_PREFIX.length);
-        var v = sessionStorage.getItem(k);
-        if (v) {
-          var h = document.createElement('input');
-          h.type = 'hidden';
-          h.name = '__photo__' + slot;
-          h.value = v;
-          h.setAttribute('data-photo-slot', slot);
-          form.appendChild(h);
-        }
-      }
-    }
-  } catch(e) { console.warn('PDF 사진 첨부 실패', e); }
-  // FLIR 마커 hidden
-  form.querySelectorAll('input[type="hidden"][data-markers]').forEach(function(el){ el.remove(); });
-  if (window._flirDecoded) {
-    var mh = document.createElement('input');
-    mh.type = 'hidden';
-    mh.name = '__markers__';
-    mh.value = JSON.stringify(window._flirDecoded);
-    mh.setAttribute('data-markers','1');
-    form.appendChild(mh);
-  }
-  form.submit();
+  if (form && form.requestSubmit) form.requestSubmit();
+  else if (form) form.submit();
   return false;
 }
 </script>
