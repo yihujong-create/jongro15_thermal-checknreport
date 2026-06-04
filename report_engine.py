@@ -1094,4 +1094,16 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
     append_imgs = []
     for p in pages[1:]:
         rgb = p.convert("RGB")
-   
+        if rgb.size != A4_PX:
+            rgb = rgb.resize(A4_PX, Image.LANCZOS)
+        append_imgs.append(rgb)
+    pages.clear()
+    gc.collect()
+    first.save(
+        out_path, "PDF", resolution=200.0,
+        save_all=True,
+        append_images=append_imgs,
+    )
+    del first, append_imgs
+    gc.collect()
+    return out_path

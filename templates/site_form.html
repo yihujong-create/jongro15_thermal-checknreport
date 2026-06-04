@@ -266,12 +266,21 @@ body{padding-bottom:42px !important;}
     var fmt = document.getElementById('inspection-date-fmt');
     var ym = document.getElementById('cover-ym');
     if (!dt) return;
-    var v = dt.value || '';  // "YYYY-MM-DDTHH" (시 단위 step=3600)
-    var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}))?/);
+    var v = dt.value || '';  // "YYYY-MM-DDTHH:MM" (브라우저별)
+    var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}))?(?::(\d{2}))?/);
     if (!m) { if (fmt) fmt.value=''; return; }
-    var yy = m[1], mm = m[2], dd = m[3], hh = m[4] || '';
+    var yy = m[1], mm = m[2], dd = m[3];
+    var hh24 = m[4] ? ('00' + parseInt(m[4], 10)).slice(-2) : '';  // 24시간 2자리
+    // v108 — 분을 무조건 00분으로 강제 (사용자가 분 변경해도 무시)
+    if (hh24) {
+      var fixed = yy + '-' + mm + '-' + dd + 'T' + hh24 + ':00';
+      if (dt.value !== fixed) {
+        // 값 보정 (분이 다르면 강제로 00분)
+        dt.value = fixed;
+      }
+    }
     var korText = yy + '년 ' + mm + '월 ' + dd + '일';
-    if (hh) korText += ' ' + parseInt(hh, 10) + '시';
+    if (hh24) korText += ' ' + parseInt(hh24, 10) + '시 00분';
     if (fmt) fmt.value = korText;
     if (ym) ym.value = yy + '.' + mm;
   }
@@ -1005,16 +1014,17 @@ function onDragEnd(ev) {
   if (!info) return;
   var idx = parseInt(mode.substring(2));
 
-  // === SP 모드 — 짧은 탭(드래그 안 함) ===
-  if (mode.indexOf('sp') === 0 && !didMove) {
+  // === SP 모드 — 클릭이든 드래그든 끝 위치에 SP 찍기 (v108: didMove 제한 제거) ===
+  if (mode.indexOf('sp') === 0) {
+    var spX = e.rx, spY = e.ry, spDx = e.dispX, spDy = e.dispY, spW = e.rectW, spH = e.rectH;
     var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
-              '&sp' + idx + '_x=' + s.rx + '&sp' + idx + '_y=' + s.ry;
+              '&sp' + idx + '_x=' + spX + '&sp' + idx + '_y=' + spY;
     fetch(url).then(function(r){return r.json();}).then(function(data){
       if (data.points && data.points.length) {
         var pt = data.points[0];
-        info.sp[idx] = { x: s.rx, y: s.ry, t: pt.temp,
-                         dispX: s.dispX, dispY: s.dispY,
-                         rectW: s.rectW, rectH: s.rectH };
+        info.sp[idx] = { x: spX, y: spY, t: pt.temp,
+                         dispX: spDx, dispY: spDy,
+                         rectW: spW, rectH: spH };
         drawMarkers(_activeName);
         var _off = getOffset(_activeName);
         autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
@@ -1031,13 +1041,17 @@ function onDragEnd(ev) {
     return;
   }
 
-  // === BX 모드 — 드래그 ===
-  if (mode.indexOf('bx') === 0 && didMove) {
+  // === BX 모드 — 드래그 (v108: didMove 무관, display 차이로만 판단) ===
+  if (mode.indexOf('bx') === 0) {
     var x1 = Math.min(s.rx, e.rx), y1 = Math.min(s.ry, e.ry);
     var x2 = Math.max(s.rx, e.rx), y2 = Math.max(s.ry, e.ry);
     var dx1 = Math.min(s.dispX, e.dispX), dy1 = Math.min(s.dispY, e.dispY);
     var dx2 = Math.max(s.dispX, e.dispX), dy2 = Math.max(s.dispY, e.dispY);
-    if (x2 - x1 < 2 || y2 - y1 < 2) return;
+    // display 좌표 차이가 5px 미만이면 드래그 안 한 것으로 보고 skip
+    if (Math.abs(e.dispX - s.dispX) < 5 || Math.abs(e.dispY - s.dispY) < 5) return;
+    // native 좌표 차이는 1 이상이면 박스로 인정 (작은 박스 허용)
+    if (x2 - x1 < 1) x2 = x1 + 1;
+    if (y2 - y1 < 1) y2 = y1 + 1;
     var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
       '&bx' + idx + '_x1=' + x1 + '&bx' + idx + '_y1=' + y1 +
       '&bx' + idx + '_x2=' + x2 + '&bx' + idx + '_y2=' + y2;
