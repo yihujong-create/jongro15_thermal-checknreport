@@ -6,13 +6,15 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=78">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=79">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
 .block{width:100%!important;max-width:100%!important;overflow:hidden!important;}
-.meta-row,.measure-row,.photo-row,.b8-slot{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
-.meta-row>*,.measure-row>*,.photo-row>*,.b8-slot>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.meta-row,.measure-row,.photo-row{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
+.b8-slots-grid > .b8-slot{width:auto !important;max-width:none !important;box-sizing:border-box;}
+.meta-row>*,.measure-row>*,.photo-row>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.b8-slots-grid > .b8-slot > *{min-width:0;max-width:100%;box-sizing:border-box;}
 label input{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
 .photo-input{width:100%!important;max-width:100%!important;min-width:0!important;}
 @media (max-width:900px){.photo-row{grid-template-columns:1fr!important;}}
