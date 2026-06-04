@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=76">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=77">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -429,27 +429,55 @@ function showPreview(name, input) {
   if (!file.type.startsWith('image/')) { preview.textContent = file.name; return; }
   preview.innerHTML = '<span style="font-size:11px;color:#888">처리중...</span>';
   resizeImage(file).then(function(r) {
-    try {
-      var existingMarkers = (window._flirDecoded && window._flirDecoded[name]) || null;
-      sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
-        dataUrl: r.dataUrl, name: file.name,
-        markers: existingMarkers
-      }));
-    } catch (e) {
-      console.error('[showPreview] sessionStorage 가득참:', name, e);
-      try {
-        var statusEl = document.getElementById('autosave-status');
-        if (statusEl) {
-          statusEl.className = 'ab-autosave-status error';
-          statusEl.textContent = '⚠ 저장공간 부족 - 사진 일부 저장불가';
-          setTimeout(function(){ statusEl.textContent = ''; }, 6000);
-        }
-      } catch(_){}
-    }
     var newFile = new File([r.blob], file.name, { type: 'image/jpeg' });
     setInputFile(input, newFile);
     renderPreview(name, r.dataUrl, file.name);
     try { tryFlirAnalysis(name, file); } catch(e) { console.warn('FLIR 시도 실패', e); }
+    var existingMarkers = (window._flirDecoded && window._flirDecoded[name]) || null;
+    fetch('/api/photo', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ dataUrl: r.dataUrl })
+    }).then(function(rs){return rs.json();}).then(function(resp) {
+      if (resp && resp.id) {
+        try {
+          sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+            photo_id: resp.id, name: file.name, markers: existingMarkers
+          }));
+          console.log('[showPreview] uploaded ' + name + ' id=' + resp.id + ' (' + Math.round((resp.size||0)/1024) + 'KB)');
+        } catch (e) {
+          console.error('[showPreview] sessionStorage 가득참 (photo_id):', e);
+        }
+      } else {
+        console.warn('[showPreview] 서버 업로드 응답 이상, dataUrl 폴백:', name, resp);
+        try {
+          sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+            dataUrl: r.dataUrl, name: file.name, markers: existingMarkers
+          }));
+        } catch(e2) {
+          var statusEl = document.getElementById('autosave-status');
+          if (statusEl) {
+            statusEl.className = 'ab-autosave-status error';
+            statusEl.textContent = '⚠ 사진 저장 실패: ' + name;
+            setTimeout(function(){ statusEl.textContent = ''; }, 6000);
+          }
+        }
+      }
+    }).catch(function(err) {
+      console.error('[showPreview] /api/photo 통신 실패:', name, err);
+      try {
+        sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+          dataUrl: r.dataUrl, name: file.name, markers: existingMarkers
+        }));
+      } catch(e3) {
+        var statusEl2 = document.getElementById('autosave-status');
+        if (statusEl2) {
+          statusEl2.className = 'ab-autosave-status error';
+          statusEl2.textContent = '⚠ 사진 업로드 실패 + 저장공간 부족';
+          setTimeout(function(){ statusEl2.textContent = ''; }, 6000);
+        }
+      }
+    });
   }).catch(function(e) { console.error(e); preview.textContent = '미리보기 실패'; });
 }
 
@@ -1131,7 +1159,32 @@ function populateFormData(data) {
         var v = data.photos[slot];
         try { sessionStorage.setItem(STORAGE_PREFIX + slot, v); } catch (se) { console.warn('sessionStorage full', se); }
         var obj = (typeof v === 'string') ? JSON.parse(v) : v;
-        if (obj && obj.dataUrl) {
+        if (obj && obj.photo_id) {
+          (function(_slot, _obj) {
+            fetch('/api/photo/' + _obj.photo_id).then(function(r){return r.json();}).then(function(res) {
+              if (res && res.dataUrl) {
+                renderPreview(_slot, res.dataUrl, _obj.name || _slot);
+                dataUrlToFile(res.dataUrl, _obj.name || (_slot + '.jpg')).then(function(file) {
+                  var mainInput = document.getElementById('file_' + _slot);
+                  if (mainInput) {
+                    setInputFile(mainInput, file);
+                    photoRestored++;
+                    if (photoRestored === photoCount) {
+                      setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
+                      setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+                    }
+                  }
+                }).catch(function(err){ console.error(err); setAutosaveStatus('error','⚠ 사진 ' + _slot + ' 복원 실패'); });
+              } else {
+                console.error('[populate] 서버 photo 조회 실패: ' + _slot, res);
+                setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 서버에서 못 찾음');
+              }
+            }).catch(function(err){
+              console.error('[populate] /api/photo 통신 실패: ' + _slot, err);
+              setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 통신 실패');
+            });
+          })(slot, obj);
+        } else if (obj && obj.dataUrl) {
           renderPreview(slot, obj.dataUrl, obj.name || slot);
           dataUrlToFile(obj.dataUrl, obj.name || (slot + '.jpg')).then(function(file) {
             var mainInput = document.getElementById('file_' + slot);
@@ -1148,7 +1201,7 @@ function populateFormData(data) {
             setAutosaveStatus('error', '⚠ 사진 ' + slot + ' 복원 실패');
           });
         } else {
-          console.warn('[populate] ' + slot + ' dataUrl 없음. obj=', obj);
+          console.warn('[populate] ' + slot + ' photo_id/dataUrl 모두 없음. obj=', obj);
         }
       } catch (e) { console.warn('[populate] photo restore err', slot, e); }
     });

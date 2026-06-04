@@ -75,6 +75,16 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_saved_site ON saved_reports(site_name);
     CREATE INDEX IF NOT EXISTS idx_saved_draft ON saved_reports(is_draft);
     CREATE INDEX IF NOT EXISTS idx_saved_updated ON saved_reports(updated_at);
+
+    CREATE TABLE IF NOT EXISTS saved_photos (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        sha         TEXT    NOT NULL UNIQUE,
+        data_b64    TEXT    NOT NULL,
+        mime        TEXT    NOT NULL,
+        size_bytes  INTEGER NOT NULL,
+        created_at  TEXT    NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_photo_sha ON saved_photos(sha);
     """)
     conn.commit()
     conn.close()
@@ -498,6 +508,54 @@ def api_delete(report_id):
     conn.commit()
     conn.close()
     return jsonify({"success": True})
+
+# ============================================================
+# 사진 업로드/조회 — 큰 dataURL을 클라이언트 sessionStorage가 아닌 서버 DB에 보관
+# ============================================================
+@app.route("/api/photo", methods=["POST"])
+@login_required
+def api_photo_upload():
+    """클라이언트가 사진 dataURL을 POST → DB에 저장 → photo_id 반환.
+    동일 sha면 기존 ID 재사용 (중복 저장 방지)."""
+    payload = request.get_json(silent=True) or {}
+    data_url = payload.get("dataUrl") or ""
+    if not data_url.startswith("data:"):
+        return jsonify({"error": "invalid dataUrl"}), 400
+    # "data:image/jpeg;base64,XXXX" → mime, b64
+    try:
+        head, b64 = data_url.split(",", 1)
+        mime = head.split(";")[0].split(":")[1]
+    except Exception:
+        return jsonify({"error": "parse fail"}), 400
+    if not b64:
+        return jsonify({"error": "empty body"}), 400
+    sha = hashlib.sha256(b64.encode("ascii")).hexdigest()
+    size = len(b64)
+    conn = get_db()
+    row = conn.execute("SELECT id FROM saved_photos WHERE sha=?", (sha,)).fetchone()
+    if row:
+        conn.close()
+        return jsonify({"id": row["id"], "reused": True, "size": size})
+    now = datetime.now().isoformat(timespec="seconds")
+    cur = conn.execute("INSERT INTO saved_photos(sha,data_b64,mime,size_bytes,created_at) VALUES(?,?,?,?,?)",
+                       (sha, b64, mime, size, now))
+    conn.commit()
+    new_id = cur.lastrowid
+    conn.close()
+    return jsonify({"id": new_id, "reused": False, "size": size})
+
+
+@app.route("/api/photo/<int:photo_id>")
+@login_required
+def api_photo_get(photo_id):
+    """photo_id → dataUrl 반환"""
+    conn = get_db()
+    row = conn.execute("SELECT mime, data_b64 FROM saved_photos WHERE id=?", (photo_id,)).fetchone()
+    conn.close()
+    if not row:
+        return jsonify({"error": "not found"}), 404
+    return jsonify({"dataUrl": "data:" + row["mime"] + ";base64," + row["data_b64"]})
+
 
 @app.route("/api/draft/<site_name>")
 @login_required
