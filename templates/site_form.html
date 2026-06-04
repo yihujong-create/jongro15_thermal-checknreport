@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=91">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=92">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -1023,24 +1023,66 @@ function showBxResult(name, idx, b) {
   res.textContent = 'Bx' + idx + ': max ' + fmt(b.max) + '°C · min ' + fmt(b.min) + '°C · avg ' + fmt(b.avg) + '°C';
 }
 
+// v92 — preview 박스 크기에 맞춰 FLIR native (x,y) 좌표를 현재 디스플레이 좌표로 변환
+// object-fit: contain일 때 letterbox(여백) 보정 포함
+function _flirNativeToDisp(info, prev) {
+  var img = prev.querySelector('img');
+  if (!img || !info || !info.width || !info.height) return null;
+  // img 요소의 실제 박스(여기서 preview 박스와 동일 — width:100% height:100%)
+  var boxW = img.clientWidth, boxH = img.clientHeight;
+  if (boxW <= 0 || boxH <= 0) return null;
+  var imgAspect = info.width / info.height;
+  var boxAspect = boxW / boxH;
+  var contentW, contentH, padX, padY;
+  if (imgAspect >= boxAspect) {
+    // 좌우 가득, 상하 여백
+    contentW = boxW;
+    contentH = boxW / imgAspect;
+    padX = 0;
+    padY = (boxH - contentH) / 2;
+  } else {
+    // 상하 가득, 좌우 여백
+    contentH = boxH;
+    contentW = boxH * imgAspect;
+    padX = (boxW - contentW) / 2;
+    padY = 0;
+  }
+  var sx = contentW / info.width;
+  var sy = contentH / info.height;
+  return {
+    toDisp: function(nx, ny) { return { x: padX + nx * sx, y: padY + ny * sy }; },
+    contentW: contentW, contentH: contentH, padX: padX, padY: padY,
+    boxW: boxW, boxH: boxH
+  };
+}
+
 function drawMarkers(name) {
   var prev = document.getElementById('preview_' + name);
   if (!prev) return;
   prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
   var info = window._flirDecoded[name];
   if (!info) return;
-  // 미리보기에 img가 없으면 마커 표시 안 함 (사진 없는데 마커만 보이는 혼동 방지)
   if (!prev.querySelector('img')) return;
+  // v92 — native 좌표 → 현재 display 좌표 변환기 (이미지 크기 다를 때도 정확)
+  var conv = _flirNativeToDisp(info, prev);
+  if (!conv) return;
   var _off = getOffset(name);
   var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
-  // 1) 사진 위 SP 마커 — 작은 + 십자가 + 라벨
+  // 1) 사진 위 SP 마커
   [1,2,3].forEach(function(k) {
     var p = info.sp[k];
     if (!p) return;
+    // v92 — p.x/p.y(FLIR native)가 있으면 항상 재계산. 없으면 p.dispX/dispY 폴백
+    var pos;
+    if (p.x != null && p.y != null) {
+      pos = conv.toDisp(p.x, p.y);
+    } else {
+      pos = { x: p.dispX, y: p.dispY };
+    }
     var m = document.createElement('div');
     m.className = 'sp-marker';
-    m.style.left = p.dispX + 'px';
-    m.style.top = p.dispY + 'px';
+    m.style.left = pos.x + 'px';
+    m.style.top = pos.y + 'px';
     m.title = 'Sp' + k + ': ' + (p.t != null ? ((Math.round((p.t + _off) * 10) / 10).toFixed(1)) + '°C' : '');
     var lab = document.createElement('span');
     lab.className = 'sp-label';
@@ -1048,16 +1090,25 @@ function drawMarkers(name) {
     m.appendChild(lab);
     prev.appendChild(m);
   });
-  // 2) BX 박스 + 라벨 (좌측 상단) + 핫(▲빨강)/콜드(▼파랑) 스팟
+  // 2) BX 박스 — native 좌표(rx1/ry1/rx2/ry2) 있으면 재계산, 없으면 dx1/dy1 폴백
   [1,2,3].forEach(function(k) {
     var b = info.bx[k];
     if (!b) return;
+    var x1, y1, x2, y2;
+    if (b.x1 != null && b.y1 != null && b.x2 != null && b.y2 != null) {
+      var p1 = conv.toDisp(b.x1, b.y1);
+      var p2 = conv.toDisp(b.x2, b.y2);
+      x1 = Math.min(p1.x, p2.x); y1 = Math.min(p1.y, p2.y);
+      x2 = Math.max(p1.x, p2.x); y2 = Math.max(p1.y, p2.y);
+    } else {
+      x1 = b.dx1; y1 = b.dy1; x2 = b.dx2; y2 = b.dy2;
+    }
     var m = document.createElement('div');
     m.className = 'bx-marker';
-    m.style.left = b.dx1 + 'px';
-    m.style.top = b.dy1 + 'px';
-    m.style.width = (b.dx2 - b.dx1) + 'px';
-    m.style.height = (b.dy2 - b.dy1) + 'px';
+    m.style.left = x1 + 'px';
+    m.style.top = y1 + 'px';
+    m.style.width = (x2 - x1) + 'px';
+    m.style.height = (y2 - y1) + 'px';
     m.title = 'Bx' + k + ': max ' + fmt(b.max) + '°C / min ' + fmt(b.min) + '°C / avg ' + fmt(b.avg) + '°C';
     var lab = document.createElement('span');
     lab.className = 'bx-label';
@@ -1589,7 +1640,6 @@ function confirmDeleteCurrent() {
 
 function confirmNewReport() {
   if (!confirm('현재 입력된 내용을 모두 지우고 새로 작성하시겠습니까?\n(저장하지 않은 내용은 사라집니다)')) return;
-  // sessionStorage 클리어
   try {
     var toRemove = [];
     for (var i = 0; i < sessionStorage.length; i++) {
@@ -1598,7 +1648,6 @@ function confirmNewReport() {
     }
     toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
   } catch (e) {}
-  // 폼 초기화
   var form = document.getElementById('report-form');
   if (form) {
     form.querySelectorAll('input[type="text"], input[type="number"]').forEach(function(inp) {
@@ -1634,6 +1683,17 @@ function generatePdf(ev) {
   else if (form) form.submit();
   return false;
 }
+
+// v92 — 윈도우 리사이즈 시 모든 열화상 슬롯의 마커 재그리기 (좌표 정확 유지)
+window.addEventListener('resize', function() {
+  if (!window._flirDecoded) return;
+  clearTimeout(window._redrawTimer);
+  window._redrawTimer = setTimeout(function() {
+    Object.keys(window._flirDecoded).forEach(function(name) {
+      try { drawMarkers(name); } catch(e) {}
+    });
+  }, 150);
+});
 </script>
 </body>
 </html>
