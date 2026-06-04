@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=73">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=75">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -16,7 +16,7 @@ html,body{overflow-x:hidden!important;max-width:100%!important;}
 label input{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
 .photo-input{width:100%!important;max-width:100%!important;min-width:0!important;}
 @media (max-width:900px){.photo-row{grid-template-columns:1fr!important;}}
-.photo-preview{position:relative;}
+.photo-preview{position:relative !important;overflow:hidden !important;}
 .photo-preview>img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;display:block!important;}
 .photo-preview>.fname-tag{position:absolute;left:0;right:0;bottom:0;background:rgba(46,125,50,0.85);color:white;font-size:10px;text-align:center;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .photo-preview>.btn-delete-photo{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);color:white;border:2px solid white;font-size:13px;font-weight:700;line-height:1;cursor:pointer;z-index:10;padding:0;display:flex;align-items:center;justify-content:center;}
@@ -50,7 +50,8 @@ label input{width:100%!important;min-width:0!important;max-width:100%!important;
 /* 드래그 중 표시 */
 .photo-preview .bx-drag{position:absolute;border:2px dashed #c8102e;background:rgba(200,16,46,0.1);pointer-events:none;z-index:6;box-sizing:border-box;}
 
-.photo-preview.sp-active,.photo-preview.bx-active{cursor:crosshair;}
+.photo-preview.sp-active,.photo-preview.bx-active{cursor:crosshair;outline:3px dashed #c8102e !important;outline-offset:-3px;animation:pulseActive 1.2s ease-in-out infinite;}
+@keyframes pulseActive{0%,100%{outline-color:#c8102e;}50%{outline-color:#ff6b00;}}
 
 /* 컨트롤 */
 .sp-controls,.bx-controls{display:flex;gap:4px;margin:4px 0;flex-wrap:wrap;}
@@ -332,14 +333,38 @@ function renderPreview(name, dataUrl, fname) {
   var preview = document.getElementById('preview_' + name);
   if (!preview) return;
   preview.innerHTML = '';
+  // preview 박스가 position:relative여야 자식 absolute가 작동
+  preview.style.position = 'relative';
+  preview.style.width = '100%';
+  preview.style.overflow = 'hidden';
   var img = document.createElement('img');
-  img.src = dataUrl; img.alt = 'preview';
+  img.src = dataUrl;
+  img.alt = 'preview';
+  // ★ inline style 강제 — 모든 CSS 충돌 우회 + 박스 가득 채우기
+  img.style.cssText =
+    'position:absolute !important;' +
+    'top:0 !important; left:0 !important;' +
+    'width:100% !important; height:100% !important;' +
+    'max-width:100% !important; max-height:100% !important;' +
+    'object-fit:contain !important;' +
+    'object-position:center center !important;' +
+    'display:block !important;' +
+    'z-index:1;';
+  // 이미지 로드 완료 후 한 번 더 강제 (모바일에서 onload 늦을 때 대비)
+  img.onload = function() {
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+  };
   var btn = document.createElement('button');
   btn.type = 'button'; btn.className = 'btn-delete-photo';
   btn.textContent = '✕'; btn.title = '사진 삭제';
   btn.onclick = function() { deletePhoto(name); };
+  // 삭제 버튼/파일명 태그도 z-index 보장
+  btn.style.zIndex = '10';
   var tag = document.createElement('div');
   tag.className = 'fname-tag'; tag.textContent = fname;
+  tag.style.zIndex = '5';
   preview.appendChild(img);
   preview.appendChild(btn);
   preview.appendChild(tag);
@@ -740,80 +765,73 @@ function getPixelFromEvent(prev, clientX, clientY) {
 }
 
 function onPreviewClick(ev) {
-  if (!_activeName || !_activeMode) return;
-  if (_activeMode.indexOf('sp') !== 0) return; // SP만 단일 클릭
-  if (_dragState && _dragState.didMove) { _dragState = null; return; }
-  _dragState = null;
-  var prev = ev.currentTarget;
-  var p = getPixelFromEvent(prev, ev.clientX, ev.clientY);
-  if (!p) return;
-  var idx = parseInt(_activeMode.substring(2));
-  var info = window._flirDecoded[_activeName];
-  var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) + '&sp' + idx + '_x=' + p.rx + '&sp' + idx + '_y=' + p.ry;
-  fetch(url).then(function(r){return r.json();}).then(function(data){
-    if (data.points && data.points.length) {
-      var pt = data.points[0];
-      info.sp[idx] = { x: p.rx, y: p.ry, t: pt.temp, dispX: p.dispX, dispY: p.dispY, rectW: p.rectW, rectH: p.rectH };
-      console.log('[SP 등록] name=' + _activeName + ' SP' + idx + ' (x=' + p.rx + ',y=' + p.ry + ',t=' + pt.temp + ')');
-      drawMarkers(_activeName);
-      var _off = getOffset(_activeName);
-      autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
-      persistMarkers(_activeName);
-      var next = idx + 1;
-      if (next <= 3) {
-        var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
-        if (nb) toggleMode(_activeName, 'sp' + next, nb);
-      } else { exitMode(); }
-    }
-  }).catch(function(e) { console.error(e); });
+  // 모바일과 PC 마우스 모두 onDragStart/onDragEnd 흐름에서 처리됨
+  // (mousedown → mousemove → mouseup → click 순서이지만 click 시점에 _dragState 이미 null)
+  // click은 fallback 또는 중복 방지를 위해 무시
+  return;
 }
 
 function onDragStart(ev) {
   if (!_activeName || !_activeMode) return;
-  if (_activeMode.indexOf('bx') !== 0) return;
-  ev.preventDefault();
+  // SP/BX 모두 처리 시작 — onDragEnd에서 분기
+  try { ev.preventDefault(); } catch(_){}
+  try { ev.stopPropagation(); } catch(_){}
+  // 햅틱 피드백 (모바일)
+  try { if (navigator.vibrate) navigator.vibrate(25); } catch(_){}
   var prev = ev.currentTarget;
   var cx, cy;
   if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
   else { cx = ev.clientX; cy = ev.clientY; }
   var p = getPixelFromEvent(prev, cx, cy);
   if (!p) return;
-  _dragState = { prev: prev, start: p, didMove: false };
-  // 임시 박스
-  var box = document.createElement('div');
-  box.className = 'bx-drag';
-  box.id = '_dragbox';
-  box.style.left = p.dispX + 'px';
-  box.style.top = p.dispY + 'px';
-  box.style.width = '0px';
-  box.style.height = '0px';
-  prev.appendChild(box);
+  _dragState = { prev: prev, start: p, didMove: false, mode: _activeMode, startTime: Date.now() };
+  // BX 모드만 임시 박스 표시
+  if (_activeMode.indexOf('bx') === 0) {
+    var box = document.createElement('div');
+    box.className = 'bx-drag';
+    box.id = '_dragbox';
+    box.style.left = p.dispX + 'px';
+    box.style.top = p.dispY + 'px';
+    box.style.width = '0px';
+    box.style.height = '0px';
+    prev.appendChild(box);
+  }
   document.addEventListener('mousemove', onDragMove);
   document.addEventListener('mouseup', onDragEnd);
   document.addEventListener('touchmove', onDragMove, {passive: false});
   document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('touchcancel', onDragEnd);
 }
 
 function onDragMove(ev) {
   if (!_dragState) return;
-  ev.preventDefault();
+  try { ev.preventDefault(); } catch(_){}
   var cx, cy;
   if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+  else if (ev.changedTouches && ev.changedTouches[0]) { cx = ev.changedTouches[0].clientX; cy = ev.changedTouches[0].clientY; }
   else { cx = ev.clientX; cy = ev.clientY; }
   var p = getPixelFromEvent(_dragState.prev, cx, cy);
   if (!p) return;
   _dragState.end = p;
-  _dragState.didMove = true;
-  var box = document.getElementById('_dragbox');
-  if (!box) return;
-  var x = Math.min(_dragState.start.dispX, p.dispX);
-  var y = Math.min(_dragState.start.dispY, p.dispY);
-  var w = Math.abs(p.dispX - _dragState.start.dispX);
-  var h = Math.abs(p.dispY - _dragState.start.dispY);
-  box.style.left = x + 'px';
-  box.style.top = y + 'px';
-  box.style.width = w + 'px';
-  box.style.height = h + 'px';
+  // 5px 이상 이동해야 실제 드래그로 인식 (의도치 않은 흔들림 무시)
+  var dx = p.dispX - _dragState.start.dispX;
+  var dy = p.dispY - _dragState.start.dispY;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    _dragState.didMove = true;
+  }
+  // BX 모드일 때만 임시 박스 갱신
+  if (_dragState.mode && _dragState.mode.indexOf('bx') === 0) {
+    var box = document.getElementById('_dragbox');
+    if (!box) return;
+    var x = Math.min(_dragState.start.dispX, p.dispX);
+    var y = Math.min(_dragState.start.dispY, p.dispY);
+    var w = Math.abs(p.dispX - _dragState.start.dispX);
+    var h = Math.abs(p.dispY - _dragState.start.dispY);
+    box.style.left = x + 'px';
+    box.style.top = y + 'px';
+    box.style.width = w + 'px';
+    box.style.height = h + 'px';
+  }
 }
 
 function onDragEnd(ev) {
@@ -821,41 +839,76 @@ function onDragEnd(ev) {
   document.removeEventListener('mouseup', onDragEnd);
   document.removeEventListener('touchmove', onDragMove);
   document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', onDragEnd);
   var box = document.getElementById('_dragbox');
   if (box) box.remove();
-  if (!_dragState || !_dragState.didMove || !_dragState.end) { _dragState = null; return; }
-  var s = _dragState.start, e = _dragState.end;
+  if (!_dragState) return;
+  var s = _dragState.start;
+  var e = _dragState.end || s;
   var prev = _dragState.prev;
-  var idx = parseInt(_activeMode.substring(2));
-  var info = window._flirDecoded[_activeName];
-  if (!info) { _dragState = null; return; }
-  var x1 = Math.min(s.rx, e.rx), y1 = Math.min(s.ry, e.ry);
-  var x2 = Math.max(s.rx, e.rx), y2 = Math.max(s.ry, e.ry);
-  var dx1 = Math.min(s.dispX, e.dispX), dy1 = Math.min(s.dispY, e.dispY);
-  var dx2 = Math.max(s.dispX, e.dispX), dy2 = Math.max(s.dispY, e.dispY);
-  if (x2 - x1 < 2 || y2 - y1 < 2) { _dragState = null; return; }
-  var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
-    '&bx' + idx + '_x1=' + x1 + '&bx' + idx + '_y1=' + y1 +
-    '&bx' + idx + '_x2=' + x2 + '&bx' + idx + '_y2=' + y2;
-  fetch(url).then(function(r){return r.json();}).then(function(data){
-    if (data.boxes && data.boxes.length) {
-      var b = data.boxes[0];
-      info.bx[idx] = {
-        x1: x1, y1: y1, x2: x2, y2: y2,
-        dx1: dx1, dy1: dy1, dx2: dx2, dy2: dy2,
-        rectW: s.rectW, rectH: s.rectH,
-        max: b.max, min: b.min, avg: b.avg,
-        max_x: b.max_x, max_y: b.max_y, min_x: b.min_x, min_y: b.min_y
-      };
-      drawMarkers(_activeName);
-      showBxResult(_activeName, idx, b);
-      // Bx도 Point에 자동 입력 (max값 + offset)
-      var _off2 = getOffset(_activeName);
-      autoFillPoint(_activeName, idx, Math.round((b.max + _off2) * 10) / 10);
-      persistMarkers(_activeName);
-    }
-  }).catch(function(e) { console.error(e); });
+  var didMove = _dragState.didMove;
+  var mode = _dragState.mode || _activeMode;
   _dragState = null;
+  if (!mode || !_activeName) return;
+  var info = window._flirDecoded[_activeName];
+  if (!info) return;
+  var idx = parseInt(mode.substring(2));
+
+  // === SP 모드 — 짧은 탭(드래그 안 함) ===
+  if (mode.indexOf('sp') === 0 && !didMove) {
+    var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+              '&sp' + idx + '_x=' + s.rx + '&sp' + idx + '_y=' + s.ry;
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      if (data.points && data.points.length) {
+        var pt = data.points[0];
+        info.sp[idx] = { x: s.rx, y: s.ry, t: pt.temp,
+                         dispX: s.dispX, dispY: s.dispY,
+                         rectW: s.rectW, rectH: s.rectH };
+        drawMarkers(_activeName);
+        var _off = getOffset(_activeName);
+        autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
+        persistMarkers(_activeName);
+        try { if (navigator.vibrate) navigator.vibrate([15, 30, 15]); } catch(_){}
+        // 다음 SP로 자동 이동
+        var next = idx + 1;
+        if (next <= 3) {
+          var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
+          if (nb) toggleMode(_activeName, 'sp' + next, nb);
+        } else { exitMode(); }
+      }
+    }).catch(function(e) { console.error(e); });
+    return;
+  }
+
+  // === BX 모드 — 드래그 ===
+  if (mode.indexOf('bx') === 0 && didMove) {
+    var x1 = Math.min(s.rx, e.rx), y1 = Math.min(s.ry, e.ry);
+    var x2 = Math.max(s.rx, e.rx), y2 = Math.max(s.ry, e.ry);
+    var dx1 = Math.min(s.dispX, e.dispX), dy1 = Math.min(s.dispY, e.dispY);
+    var dx2 = Math.max(s.dispX, e.dispX), dy2 = Math.max(s.dispY, e.dispY);
+    if (x2 - x1 < 2 || y2 - y1 < 2) return;
+    var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+      '&bx' + idx + '_x1=' + x1 + '&bx' + idx + '_y1=' + y1 +
+      '&bx' + idx + '_x2=' + x2 + '&bx' + idx + '_y2=' + y2;
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      if (data.boxes && data.boxes.length) {
+        var b = data.boxes[0];
+        info.bx[idx] = {
+          x1: x1, y1: y1, x2: x2, y2: y2,
+          dx1: dx1, dy1: dy1, dx2: dx2, dy2: dy2,
+          rectW: s.rectW, rectH: s.rectH,
+          max: b.max, min: b.min, avg: b.avg,
+          max_x: b.max_x, max_y: b.max_y, min_x: b.min_x, min_y: b.min_y
+        };
+        drawMarkers(_activeName);
+        showBxResult(_activeName, idx, b);
+        var _off2 = getOffset(_activeName);
+        autoFillPoint(_activeName, idx, Math.round((b.max + _off2) * 10) / 10);
+        persistMarkers(_activeName);
+        try { if (navigator.vibrate) navigator.vibrate([20, 40, 20]); } catch(_){}
+      }
+    }).catch(function(e) { console.error(e); });
+  }
 }
 
 function showBxResult(name, idx, b) {
