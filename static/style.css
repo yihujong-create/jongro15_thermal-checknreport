@@ -114,12 +114,19 @@ h2 {
    모든 행 — 폭 100% 강제, grid item min-width: 0
    (이게 input 기본 너비가 grid를 늘리는 문제의 핵심 수정)
    ============================================================ */
-.meta-row, .measure-row, .photo-row, .b8-slot {
+.meta-row, .measure-row, .photo-row {
     display: grid;
     gap: 8px;
     margin: 8px 0;
     width: 100%;
     max-width: 100%;
+}
+
+/* .b8-slot은 width:100% 강제하지 않음 — 부모(.b8-slots-grid)의 4열에서 1fr 분배되도록 */
+.b8-slot {
+    display: grid;
+    gap: 8px;
+    margin: 8px 0;
 }
 
 /* 모든 grid 자식 — min-width 0이어야 컬럼이 안 늘어남 */
@@ -268,11 +275,12 @@ label input:focus { border-color: #c8102e; outline: none; }
     .block-title { font-size: 12px; }
 
     /* 모바일: 모든 행은 .block 폭 100% (= 화면 폭 - .block 패딩) */
-    .meta-row, .measure-row, .photo-row, .b8-slot {
+    .meta-row, .measure-row, .photo-row {
         gap: 5px;
         width: 100% !important;
         max-width: 100% !important;
     }
+    .b8-slot { gap: 5px; }
 
     .meta-row { grid-template-columns: 1fr 1fr 1fr; }
     .meta-row label { font-size: 9px; }
@@ -358,8 +366,4 @@ label input:focus { border-color: #c8102e; outline: none; }
 @media (max-width: 900px) {
     .b8-slots-grid {
         grid-template-columns: 1fr;
-        gap: 6px;
-    }
-    .b8-slots-grid > .b8-slot .photo-preview { max-height: 200px; min-height: 140px; }
-    .b8-slots-grid .btn-photo-single { padding: 6px 4px; font-size: 12px; }
-}
+      
