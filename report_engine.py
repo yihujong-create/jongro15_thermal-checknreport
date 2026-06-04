@@ -565,6 +565,25 @@ def render_b8(items, page_num):
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 _PDF_TPL_DIR = os.path.join(_BASE_DIR, "templates_pdf")
 
+# v109 — 사이트 한글명 → 영문 키 매핑 (Git/Render 파일명 인코딩 회피)
+SITE_KEY_MAP = {
+    "조달청 청사": "jodalcheong",
+    "비축기지":   "bichuk",
+    "티튜브":     "titube",
+}
+
+def _site_key(site_name: str) -> str:
+    """사이트명을 파일명 안전한 키로 변환. 없으면 원본 반환(폴백)."""
+    return SITE_KEY_MAP.get(site_name, site_name)
+
+
+def _template_pdf_path(prefix: str, site_name: str) -> str:
+    """templates_pdf/<prefix>_<key>.pdf 경로 반환. 영문 키 우선, 한글 폴백."""
+    eng = os.path.join(_PDF_TPL_DIR, f"{prefix}_{_site_key(site_name)}.pdf")
+    if os.path.exists(eng):
+        return eng
+    return os.path.join(_PDF_TPL_DIR, f"{prefix}_{site_name}.pdf")
+
 # 사이트별 표지 연월 좌표 매핑 (300DPI 기준)
 COVER_YM_BOX = {
     "조달청 청사": (1100, 2065, 1380, 2135),
@@ -641,7 +660,7 @@ def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
 
     year_month: "2026.06" 등. 빈 문자열이면 원본 그대로.
     """
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"cover_{site_name}.pdf")
+    pdf_path = _template_pdf_path("cover", site_name)
     if os.path.exists(pdf_path):
         try:
             img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
@@ -710,7 +729,7 @@ DEFAULT_P2_RESULTS = [
 def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
               items: list = None, results: list = None) -> "Image.Image":
     """페이지 2 — 점검일/주요점검사항/점검결과/연월만 동적 교체."""
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"p2_{site_name}.pdf")
+    pdf_path = _template_pdf_path("p2", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
@@ -792,7 +811,7 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
 
 def render_p3(site_name: str) -> "Image.Image":
     """페이지 3 — 원본 그대로."""
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"p3_{site_name}.pdf")
+    pdf_path = _template_pdf_path("p3", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
@@ -802,7 +821,7 @@ def render_p3(site_name: str) -> "Image.Image":
 
 def render_p4(site_name: str) -> "Image.Image":
     """페이지 4 — 원본 그대로."""
-    pdf_path = os.path.join(_PDF_TPL_DIR, f"p4_{site_name}.pdf")
+    pdf_path = _template_pdf_path("p4", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
@@ -1083,11 +1102,9 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         page_num += 1
     if not pages:
         raise ValueError("PDF에 포함된 페이지가 없습니다. 'PDF 포함 페이지'에서 최소 1개 이상 체크해주세요.")
-    # v106 — A4 200 DPI로 다운샘플 (메모리 절약: 25MB→11MB per page, OOM 방지)
-    # 1654x2339 @ 200 DPI = 210x297mm (정확한 A4)
+    # A4 200 DPI downsample (memory)
     import gc
     A4_PX = (1654, 2339)
-    # 한 페이지씩 처리해서 메모리 누적 방지
     first = pages[0].convert("RGB")
     if first.size != A4_PX:
         first = first.resize(A4_PX, Image.LANCZOS)
