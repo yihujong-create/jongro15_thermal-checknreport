@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=90">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=91">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -1294,30 +1294,67 @@ function populateFormData(data) {
       if (nameInp) nameInp.value = data.fields['__report_name'];
     }
   }
-  // 사진 복원 — 동기 정렬: sessionStorage 먼저 쓰고 미리보기 + 비동기로 input.files
-  // v89 — 열화상 슬롯(*_ut/*_lt 또는 b8_..._photo)은 SP/BX 컨트롤 무조건 표시 + 가능 시 FLIR 재분석
+  // v91 — 마커 100% 복원 통합 처리
+  //   1) data.markers + obj.markers를 슬롯별로 병합 (둘 다 비어있지 않은 값 우선)
+  //   2) 사진 미리보기 img.onload 이후에만 drawMarkers 호출 (race condition 제거)
+  //   3) tryFlirAnalysis는 width/height/hash 갱신 + sp/bx 보존 + drawMarkers 재호출
   var photoCount = 0, photoRestored = 0;
 
   function _isThermalSlot(slot) {
-    // photo_<n>_ut / photo_<n>_lt 가 열화상. 그 외 *_uv/*_lv는 실화상.
     return /_(ut|lt)$/.test(slot);
   }
 
-  function _afterPhotoReady(slot, file, obj) {
-    // 1) obj.markers가 있으면 _flirDecoded에 복원
-    if (obj && obj.markers && typeof obj.markers === 'object') {
-      window._flirDecoded = window._flirDecoded || {};
-      window._flirDecoded[slot] = Object.assign({}, window._flirDecoded[slot] || {}, obj.markers);
+  // sp/bx 두 객체에서 null이 아닌 값을 우선 채택해서 깊은 병합
+  function _mergeMarkerInfo(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    var out = Object.assign({}, a, b);
+    ['sp','bx'].forEach(function(kind) {
+      var aK = a[kind] || {}, bK = b[kind] || {};
+      var merged = {};
+      [1,2,3].forEach(function(i) {
+        // a/b 중 null이 아닌 값 우선 (b가 더 최신 → 우선)
+        if (bK[i] != null) merged[i] = bK[i];
+        else if (aK[i] != null) merged[i] = aK[i];
+        else merged[i] = null;
+      });
+      out[kind] = merged;
+    });
+    return out;
+  }
+
+  function _afterPhotoReady(slot, file, obj, savedMarkers) {
+    window._flirDecoded = window._flirDecoded || {};
+    // 1) 두 출처(obj.markers, data.markers[slot]) 병합 — null 아닌 값 우선
+    var merged = _mergeMarkerInfo(savedMarkers || null, (obj && obj.markers) || null);
+    if (merged) {
+      // 기존 _flirDecoded와도 병합 (이미 tryFlirAnalysis 결과 들어와 있을 수 있음)
+      window._flirDecoded[slot] = _mergeMarkerInfo(window._flirDecoded[slot] || null, merged);
     }
-    // 2) 열화상 슬롯이면 SP/BX 컨트롤 무조건 표시
-    if (_isThermalSlot(slot)) {
-      try { showControls(slot); } catch(e) { console.warn('showControls err', slot, e); }
-      // 3) 파일이 있으면 FLIR 재분석 — preserveMarkers=true로 호출해서 sp/bx 좌표 유지
-      if (file) {
-        try { tryFlirAnalysis(slot, file, true); } catch(e) { console.warn('FLIR 재분석 실패', slot, e); }
+    if (!_isThermalSlot(slot)) return;
+    // 2) 컨트롤 표시
+    try { showControls(slot); } catch(e) { console.warn('showControls err', slot, e); }
+    // 3) 미리보기 img가 이미 로드됐는지 확인 → drawMarkers
+    var prev = document.getElementById('preview_' + slot);
+    var img = prev ? prev.querySelector('img') : null;
+    function _drawWhenReady() {
+      try { drawMarkers(slot); } catch(e) { console.warn('drawMarkers err', slot, e); }
+    }
+    if (img) {
+      if (img.complete && img.naturalWidth > 0) {
+        _drawWhenReady();
+      } else {
+        img.addEventListener('load', _drawWhenReady, { once: true });
+        // 안전망: 1초 후에도 한 번 더 시도
+        setTimeout(_drawWhenReady, 1000);
       }
-      // 4) 마커 그리기 (저장된 좌표 있을 때 — FLIR 재분석 결과 도착 전 즉시 한 번)
-      try { drawMarkers(slot); } catch(e) {}
+    } else {
+      // img DOM 없으면 100ms 후 재시도 (renderPreview 직후 호출 시)
+      setTimeout(_drawWhenReady, 100);
+    }
+    // 4) 파일 있으면 FLIR 재분석 (preserveMarkers=true → sp/bx 유지)
+    if (file) {
+      try { tryFlirAnalysis(slot, file, true); } catch(e) { console.warn('FLIR 재분석 실패', slot, e); }
     }
   }
 
@@ -1340,7 +1377,7 @@ function populateFormData(data) {
                     setInputFile(mainInput, file);
                   }
                   // v89 — input.files 설정 성공/실패와 무관하게 컨트롤 복원
-                  _afterPhotoReady(_slot, file, _obj);
+                  _afterPhotoReady(_slot, file, _obj, (data.markers || {})[_slot]);
                   photoRestored++;
                   if (photoRestored === photoCount) {
                     setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
@@ -1350,17 +1387,17 @@ function populateFormData(data) {
                   console.error(err);
                   setAutosaveStatus('error','⚠ 사진 ' + _slot + ' 파일 변환 실패');
                   // 그래도 컨트롤은 표시 (수동 모드)
-                  _afterPhotoReady(_slot, null, _obj);
+                  _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
                 });
               } else {
                 console.error('[populate] 서버 photo 조회 실패: ' + _slot, res);
                 setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 서버에서 못 찾음');
-                _afterPhotoReady(_slot, null, _obj);
+                _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
               }
             }).catch(function(err){
               console.error('[populate] /api/photo 통신 실패: ' + _slot, err);
               setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 통신 실패');
-              _afterPhotoReady(_slot, null, _obj);
+              _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
             });
           })(slot, obj);
         } else if (obj && obj.dataUrl) {
@@ -1369,7 +1406,7 @@ function populateFormData(data) {
             dataUrlToFile(_obj.dataUrl, _obj.name || (_slot + '.jpg')).then(function(file) {
               var mainInput = document.getElementById('file_' + _slot);
               if (mainInput) { setInputFile(mainInput, file); }
-              _afterPhotoReady(_slot, file, _obj);
+              _afterPhotoReady(_slot, file, _obj, (data.markers || {})[_slot]);
               photoRestored++;
               if (photoRestored === photoCount) {
                 setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
@@ -1378,7 +1415,7 @@ function populateFormData(data) {
             }).catch(function(err) {
               console.error('[populate] dataUrlToFile 실패: ' + _slot, err);
               setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 복원 실패');
-              _afterPhotoReady(_slot, null, _obj);
+              _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
             });
           })(slot, obj);
         } else {
@@ -1387,19 +1424,18 @@ function populateFormData(data) {
       } catch (e) { console.warn('[populate] photo restore err', slot, e); }
     });
   }
-  // 마커 + showControls/drawMarkers — 미리보기 DOM이 만들어진 다음 호출
-  if (data.markers) {
-    window._flirDecoded = window._flirDecoded || {};
-    Object.keys(data.markers).forEach(function(n) {
-      window._flirDecoded[n] = data.markers[n];
-    });
-    // 미리보기가 렌더된 후(약간 지연) 컨트롤 + 마커 표시
+  // v91 — data.markers는 _afterPhotoReady에서 슬롯별로 병합 처리됨
+  // 여기서는 offset만 처리 + 안전망 차원으로 setTimeout 후 모든 슬롯 drawMarkers 한 번 더
+  if (data.markers || data.offsets) {
     setTimeout(function() {
-      Object.keys(data.markers).forEach(function(n) {
-        try { showControls(n); } catch (e) { console.warn('showControls err', n, e); }
-        try { drawMarkers(n); } catch (e) { console.warn('drawMarkers err', n, e); }
-      });
-      // offset도 같이
+      // 안전망: 모든 슬롯에 drawMarkers 한 번 더 (img 늦게 로드된 경우 대비)
+      if (data.markers) {
+        Object.keys(data.markers).forEach(function(n) {
+          try { showControls(n); } catch (e) {}
+          try { drawMarkers(n); } catch (e) {}
+        });
+      }
+      // offset
       if (data.offsets) {
         Object.keys(data.offsets).forEach(function(n) {
           var inp = document.querySelector('input[data-offset="' + n + '"]');
