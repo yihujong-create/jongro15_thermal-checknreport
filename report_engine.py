@@ -770,11 +770,22 @@ def _patch_pdf_text(page, doc, replacements):
     """페이지의 특정 텍스트 span을 새 텍스트로 교체.
 
     replacements: dict mapping original_text → new_text.
-    원본의 폰트/크기/위치를 그대로 사용.
+    원본 폰트는 subset이라 모든 한글이 안 들어있을 수 있어서,
+    안전을 위해 DroidSansFallback(번들된 한글 풀셋) 사용.
     """
     import fitz
     if not replacements:
         return
+    # v100 — 모든 글자 지원하는 한글 폰트 사용 (원본 CIDFont는 글리프 부족)
+    kr_font_path = None
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DroidSansFallback.ttf"),
+        "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            kr_font_path = c
+            break
     extracted_fonts = {}  # font_name → ttf path
     page_dict = page.get_text("dict")
     for block in page_dict["blocks"]:
@@ -801,16 +812,15 @@ def _patch_pdf_text(page, doc, replacements):
                 cover_rect = fitz.Rect(bbox.x0 - pad, bbox.y0 - pad,
                                        bbox.x1 + pad, bbox.y1 + pad)
                 page.draw_rect(cover_rect, color=(1, 1, 1), fill=(1, 1, 1))
-                # 폰트 추출 (캐시)
-                if font_name not in extracted_fonts:
-                    fp = _extract_page_font(doc, page, font_name, _PDF_TPL_DIR)
-                    extracted_fonts[font_name] = fp
-                fp = extracted_fonts[font_name]
+                # v100 — 원본 subset 폰트 대신 DroidSansFallback(풀셋) 사용
                 pdf_font = None
                 try:
-                    if fp:
-                        pdf_font = f"f_{abs(hash(font_name)) % 100000}"
-                        page.insert_font(fontname=pdf_font, fontfile=fp)
+                    if kr_font_path:
+                        pdf_font = "drsk"
+                        try:
+                            page.insert_font(fontname=pdf_font, fontfile=kr_font_path)
+                        except Exception:
+                            pass
                     else:
                         pdf_font = "helv"
                     # 텍스트 삽입 위치: bbox.x0 + baseline
@@ -826,6 +836,52 @@ def _patch_pdf_text(page, doc, replacements):
                     )
                 except Exception as e:
                     print(f"[WARN] insert_text fail {orig!r} → {new_text!r}: {e}")
+
+
+def _pil_kr_font(size_px: int):
+    """DroidSansFallback ImageFont (한글)."""
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DroidSansFallback.ttf"),
+        "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                return ImageFont.truetype(c, size_px)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def _pil_ascii_font(size_px: int):
+    """DejaVuSans ImageFont (ASCII/숫자)."""
+    candidates = [
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", "DejaVuSans.ttf"),
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            try:
+                return ImageFont.truetype(c, size_px)
+            except Exception:
+                continue
+    return _pil_kr_font(size_px)
+
+
+def _draw_mixed(d, x, y, text, size_px, fill="black"):
+    """글자별로 한글/ASCII 폰트 선택해서 그리기. 시작 x 픽셀 위치 반환."""
+    kr = _pil_kr_font(size_px)
+    ascii_f = _pil_ascii_font(size_px)
+    for ch in text:
+        cp = ord(ch)
+        if (0xAC00 <= cp <= 0xD7A3) or (0x3130 <= cp <= 0x318F) or (0x3000 <= cp <= 0x303F):
+            f = kr
+        else:
+            f = ascii_f
+        d.text((x, y), ch, font=f, fill=fill)
+        bb = f.getbbox(ch)
+        x += bb[2] - bb[0]
+    return x
 
 
 def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
@@ -871,26 +927,73 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
                     import re as _re
                     if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
                         replacements[t] = new_ym
-    # 주요 점검사항 1~6
-    use_items = items if (items and len(items) == 6) else DEFAULT_P2["items"]
-    for orig, new in zip(DEFAULT_P2["items"], use_items):
+    # 주요 점검사항 1~6 (기존 위치)
+    use_items = list(items) if items else [None]*10
+    while len(use_items) < 10: use_items.append(None)
+    for i, orig in enumerate(DEFAULT_P2["items"]):
+        new = use_items[i]
         if new and new != orig:
             replacements[orig] = new
     # 점검결과 1-1 ~ 6-1
-    use_results = results if (results and len(results) == 6) else DEFAULT_P2["results"]
-    for orig, new in zip(DEFAULT_P2["results"], use_results):
+    use_results = list(results) if results else [None]*10
+    while len(use_results) < 10: use_results.append(None)
+    for i, orig in enumerate(DEFAULT_P2["results"]):
+        new = use_results[i]
         if new and new != orig:
             replacements[orig] = new
 
-    _patch_pdf_text(page, doc, replacements)
-
-    # 렌더링
+    # v100 — PyMuPDF text 삽입 비활성화 (폰트 글리프 문제 회피)
+    # 1) 원본 PDF를 그대로 이미지로 렌더링
     scale_x = 2481 / page.rect.width
     scale_y = 3509 / page.rect.height
     pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
     img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
     if img.size != (2481, 3509):
         img = img.resize((2481, 3509), Image.LANCZOS)
+
+    # 2) PIL로 redact + 새 텍스트 그리기 (DroidSansFallback로 한글/ASCII 모두 OK)
+    d = ImageDraw.Draw(img)
+    page_dict = page.get_text("dict")
+    for block in page_dict["blocks"]:
+        if "lines" not in block: continue
+        for line in block["lines"]:
+            for span in line["spans"]:
+                orig = span["text"]
+                new_text = None
+                if orig in replacements: new_text = replacements[orig]
+                elif orig.strip() in replacements: new_text = replacements[orig.strip()]
+                if new_text is None or new_text == orig.strip(): continue
+                bbox = span["bbox"]
+                size_pt = span["size"]
+                pad = 2
+                x1 = bbox[0] * scale_x - pad
+                y1 = bbox[1] * scale_y - pad
+                x2 = bbox[2] * scale_x + pad
+                y2 = bbox[3] * scale_y + pad
+                d.rectangle([x1, y1, x2, y2], fill="white")
+                size_px = int(size_pt * scale_y * 0.95)
+                _draw_mixed(d, bbox[0] * scale_x, bbox[1] * scale_y - 1, new_text, size_px)
+
+    # 3) 추가 항목 7~10 / 결과 7-1~10-1
+    items_x_pdf = 192.5
+    items_y_start = 272.6
+    items_dy = 12.9
+    items_size_pt = 10.6
+    results_y_start = 447.5
+    size_px_extra = int(items_size_pt * scale_y * 0.95)
+    for i in range(6, 10):
+        txt = use_items[i]
+        if txt:
+            x = items_x_pdf * scale_x
+            y = (items_y_start + i * items_dy) * scale_y
+            _draw_mixed(d, x, y, txt, size_px_extra)
+    for i in range(6, 10):
+        txt = use_results[i]
+        if txt:
+            x = items_x_pdf * scale_x
+            y = (results_y_start + i * items_dy) * scale_y
+            _draw_mixed(d, x, y, txt, size_px_extra)
+
     doc.close()
     return img
 
@@ -1131,41 +1234,24 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True):
-    """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
-
-    year_month: "2026.06" 형식. 표지/페이지2에 표시.
-    inspection_date: 페이지2 점검일 '2026년 06월 03일' 형식.
-    p2_items: 주요 점검사항 6개 (None이면 기본값).
-    p2_results: 점검결과 6개 (None이면 기본값).
-    """
     pages = []
     if include_cover:
-        try:
-            pages.append(render_cover(site_name, year_month))
-        except Exception as _ce:
-            print(f"[WARN] 표지 합성 실패: {_ce}")
+        try: pages.append(render_cover(site_name, year_month))
+        except Exception as _e: print(f"[WARN] 표지 합성 실패: {_e}")
     if include_p2:
-        try:
-            pages.append(render_p2(site_name, year_month=year_month,
-                                   inspection_date=inspection_date,
-                                   items=p2_items, results=p2_results))
-        except Exception as _p2e:
-            print(f"[WARN] 페이지2 합성 실패: {_p2e}")
+        try: pages.append(render_p2(site_name, year_month=year_month,
+                                    inspection_date=inspection_date,
+                                    items=p2_items, results=p2_results))
+        except Exception as _e: print(f"[WARN] 페이지2 합성 실패: {_e}")
     if include_p3:
-        try:
-            pages.append(render_p3(site_name))
-        except Exception as _p3e:
-            print(f"[WARN] 페이지3 합성 실패: {_p3e}")
+        try: pages.append(render_p3(site_name))
+        except Exception as _e: print(f"[WARN] 페이지3 합성 실패: {_e}")
     if include_p4:
-        try:
-            pages.append(render_p4(site_name))
-        except Exception as _p4e:
-            print(f"[WARN] 페이지4 합성 실패: {_p4e}")
+        try: pages.append(render_p4(site_name))
+        except Exception as _e: print(f"[WARN] 페이지4 합성 실패: {_e}")
     if include_b3:
-        try:
-            pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _b3e:
-            print(f"[WARN] 붙임3 합성 실패: {_b3e}")
+        try: pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
+        except Exception as _e: print(f"[WARN] 붙임3 합성 실패: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10

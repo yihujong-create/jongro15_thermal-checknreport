@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=99">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=100">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -135,31 +135,29 @@ body{padding-bottom:42px !important;}
 </head>
 <body data-site-name="{{ site_name }}" translate="no" class="notranslate">
 {#- 실화상용 (촬영+갤러리 선택 가능) -#}
+{#- v100 — input을 label 안에 nest + 직접 click 백업으로 모든 환경에서 file picker 열림 보장 -#}
 {%- macro photo_input(name, label) -%}
 <div class="photo-input">
 <span class="photo-label">{{ label }}</span>
-<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가</span></label>
-<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" capture="environment" onchange="showPreview('{{ name }}', this)">
+<label class="btn-photo-single" onclick="document.getElementById('file_{{ name }}').click();return false;"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가</span><input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" capture="environment" onchange="showPreview('{{ name }}', this)" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px;"></label>
 <div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
 </div>
 {%- endmacro -%}
 
-{#- 열화상용 (capture 없음 → 모바일에서도 갤러리 선택) -#}
+{#- 열화상용 -#}
 {%- macro photo_input_ir(name, label) -%}
 <div class="photo-input">
 <span class="photo-label">{{ label }}</span>
-<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">🔥</span><span class="btn-txt">사진 선택</span></label>
-<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<label class="btn-photo-single" onclick="document.getElementById('file_{{ name }}').click();return false;"><span class="btn-icon">🔥</span><span class="btn-txt">사진 선택</span><input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px;"></label>
 <div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
 </div>
 {%- endmacro -%}
 
-{#- 붙임8 점검사진용 (capture 없음 → 모바일에서 OS 선택창: 카메라/갤러리 모두) -#}
+{#- 붙임8 점검사진용 -#}
 {%- macro photo_input_b8(name, label) -%}
 <div class="photo-input">
 <span class="photo-label">{{ label }}</span>
-<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가/선택</span></label>
-<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<label class="btn-photo-single" onclick="document.getElementById('file_{{ name }}').click();return false;"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가/선택</span><input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)" style="position:absolute;left:-9999px;opacity:0;width:1px;height:1px;"></label>
 <div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
 </div>
 {%- endmacro -%}
@@ -229,7 +227,7 @@ body{padding-bottom:42px !important;}
 <label>점검일<input type="text" id="inspection-date" name="inspection_date" form="report-form" placeholder="예: 2026년 06월 03일"></label>
 <label>연 · 월 (자동)<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
 </div>
-<h3 class="b3-h3">주요 점검사항 (페이지 2)</h3>
+<h3 class="b3-h3">주요 점검사항 (페이지 2) — 최대 10개</h3>
 <div class="b3-grid">
 <label>1<input type="text" name="p2_item_1" placeholder="1. 특고압 전기설비 외관 점검"></label>
 <label>2<input type="text" name="p2_item_2" placeholder="2. 적외선 열화상 진단"></label>
@@ -237,8 +235,12 @@ body{padding-bottom:42px !important;}
 <label>4<input type="text" name="p2_item_4" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
 <label>5<input type="text" name="p2_item_5" placeholder="5. 인버터 판넬 점검"></label>
 <label>6<input type="text" name="p2_item_6" placeholder="6. 접속반 점검"></label>
+<label>7<input type="text" name="p2_item_7" placeholder="(추가 항목 7)"></label>
+<label>8<input type="text" name="p2_item_8" placeholder="(추가 항목 8)"></label>
+<label>9<input type="text" name="p2_item_9" placeholder="(추가 항목 9)"></label>
+<label>10<input type="text" name="p2_item_10" placeholder="(추가 항목 10)"></label>
 </div>
-<h3 class="b3-h3">점검결과 및 종합의견 (페이지 2)</h3>
+<h3 class="b3-h3">점검결과 및 종합의견 (페이지 2) — 최대 10개</h3>
 <div class="b3-grid">
 <label>1-1<input type="text" name="p2_result_1" placeholder="1-1. 외관 이상없음"></label>
 <label>2-1<input type="text" name="p2_result_2" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
@@ -246,6 +248,10 @@ body{padding-bottom:42px !important;}
 <label>4-1<input type="text" name="p2_result_4" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
 <label>5-1<input type="text" name="p2_result_5" placeholder="5-1. 인버터 판넬 이상 없음"></label>
 <label>6-1<input type="text" name="p2_result_6" placeholder="6-1. 접속반 이상 없음"></label>
+<label>7-1<input type="text" name="p2_result_7" placeholder="(추가 의견 7-1)"></label>
+<label>8-1<input type="text" name="p2_result_8" placeholder="(추가 의견 8-1)"></label>
+<label>9-1<input type="text" name="p2_result_9" placeholder="(추가 의견 9-1)"></label>
+<label>10-1<input type="text" name="p2_result_10" placeholder="(추가 의견 10-1)"></label>
 </div>
 </div>
 </section>

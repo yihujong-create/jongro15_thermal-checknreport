@@ -329,7 +329,7 @@ def generate():
         # 주요 점검사항 / 점검결과 (6개씩, 빈칸이면 기본값 사용)
         p2_items = []
         p2_results = []
-        for i in range(1, 7):
+        for i in range(1, 11):  # 1~10
             iv = (request.form.get(f"p2_item_{i}", "") or "").strip()
             rv = (request.form.get(f"p2_result_{i}", "") or "").strip()
             p2_items.append(iv if iv else None)
