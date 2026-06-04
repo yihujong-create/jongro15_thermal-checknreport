@@ -250,7 +250,7 @@ label input:focus { border-color: #c8102e; outline: none; }
     object-fit: contain;
     display: block;
 }
-.b8-slot .photo-preview { aspect-ratio: 4 / 3; max-height: 280px; }
+.b8-slot .photo-preview { aspect-ratio: 4 / 3; max-height: 110px; min-height: 80px; }
 
 /* ============================================================
    모바일 (≤ 900px)
@@ -335,20 +335,31 @@ label input:focus { border-color: #c8102e; outline: none; }
 .b8-slots-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);   /* PC: 4열 가로 배치 */
-    gap: 10px;
+    gap: 6px;
     width: 100%;
     max-width: 100%;
 }
 .b8-slots-grid > .b8-slot {
-    grid-template-columns: 1fr !important;  /* 캡션 위, 사진 아래 단일 컬럼 */
+    grid-template-columns: 1fr !important;
     border-bottom: 0;
     padding-bottom: 0;
-    gap: 6px;
+    gap: 3px;
 }
+/* b8 슬롯 내부 — PC에서 컴팩트 (전체 슬롯 크기 축소) */
+.b8-slots-grid .photo-input { padding: 4px; }
+.b8-slots-grid .photo-label { font-size: 11px; margin-bottom: 3px; }
+.b8-slots-grid .btn-photo-single { padding: 4px 2px; font-size: 11px; margin-bottom: 3px; }
+.b8-slots-grid .btn-photo-single .btn-icon { font-size: 12px; }
+.b8-slots-grid .btn-photo-single .btn-txt { font-size: 11px; }
+.b8-slots-grid .b8-caption { font-size: 10px; }
+.b8-slots-grid .b8-caption input { font-size: 11px; padding: 3px 5px; margin-top: 2px; }
+.b8-slots-grid > .b8-slot .photo-preview { max-height: 110px; min-height: 80px; }
 
 @media (max-width: 900px) {
     .b8-slots-grid {
-        grid-template-columns: 1fr;  /* 모바일은 1열 */
-        gap: 8px;
+        grid-template-columns: 1fr;
+        gap: 6px;
     }
+    .b8-slots-grid > .b8-slot .photo-preview { max-height: 200px; min-height: 140px; }
+    .b8-slots-grid .btn-photo-single { padding: 6px 4px; font-size: 12px; }
 }
