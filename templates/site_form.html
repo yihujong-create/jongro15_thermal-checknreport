@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=92">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=97">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -192,6 +192,9 @@ body{padding-bottom:42px !important;}
 <div class="pdf-pages-bar pdf-pages-bottom">
   <span class="pdf-pages-label">PDF:</span>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p2" form="report-form" value="1" checked> 2P</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p3" form="report-form" value="1" checked> 3P</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p4" form="report-form" value="1" checked> 4P</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8</label>
@@ -217,17 +220,52 @@ body{padding-bottom:42px !important;}
 <main>
 <!-- p1 표지 -->
 <section class="block-section">
-<h2>📘 표지 (1페이지)</h2>
-<p class="hint">현장명과 회사명은 사이트별 고정. 연 · 월만 입력하시면 됩니다.</p>
+<h2>📘 표지 + 페이지 2 (1~2페이지)</h2>
+<p class="hint">점검일을 입력하면 표지 연·월이 자동으로 설정됩니다. 주요 점검사항·점검결과는 비워두면 기본값(이상없음)이 적용됩니다.</p>
 <div class="block">
 <div class="block-header"><span class="block-num">표지</span><span class="block-title">{{ site_name }} — 점검 및 유지보수 보고서</span></div>
 <div class="meta-row">
 <label>현장명<input type="text" value="{{ site_name }}" disabled></label>
-<label>회사명<input type="text" value="종로전기㈜" disabled></label>
-<label>연 · 월<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
+<label>점검일<input type="text" id="inspection-date" name="inspection_date" form="report-form" placeholder="예: 2026년 06월 03일"></label>
+<label>연 · 월 (자동)<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
+</div>
+<h3 class="b3-h3">주요 점검사항 (페이지 2)</h3>
+<div class="b3-grid">
+<label>1<input type="text" name="p2_item_1" placeholder="1. 특고압 전기설비 외관 점검"></label>
+<label>2<input type="text" name="p2_item_2" placeholder="2. 적외선 열화상 진단"></label>
+<label>3<input type="text" name="p2_item_3" placeholder="3. 모듈 외관 점검"></label>
+<label>4<input type="text" name="p2_item_4" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
+<label>5<input type="text" name="p2_item_5" placeholder="5. 인버터 판넬 점검"></label>
+<label>6<input type="text" name="p2_item_6" placeholder="6. 접속반 점검"></label>
+</div>
+<h3 class="b3-h3">점검결과 및 종합의견 (페이지 2)</h3>
+<div class="b3-grid">
+<label>1-1<input type="text" name="p2_result_1" placeholder="1-1. 외관 이상없음"></label>
+<label>2-1<input type="text" name="p2_result_2" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
+<label>3-1<input type="text" name="p2_result_3" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
+<label>4-1<input type="text" name="p2_result_4" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
+<label>5-1<input type="text" name="p2_result_5" placeholder="5-1. 인버터 판넬 이상 없음"></label>
+<label>6-1<input type="text" name="p2_result_6" placeholder="6-1. 접속반 이상 없음"></label>
 </div>
 </div>
 </section>
+
+<script>
+// 점검일 → 연월 자동 동기화
+(function() {
+  function _syncYm() {
+    var dt = document.getElementById('inspection-date');
+    var ym = document.getElementById('cover-ym');
+    if (!dt || !ym) return;
+    var m = (dt.value || '').match(/(20\d{2})년\s*(\d{1,2})월/);
+    if (m) ym.value = m[1] + '.' + m[2].padStart(2, '0');
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var dt = document.getElementById('inspection-date');
+    if (dt) dt.addEventListener('input', _syncYm);
+  });
+})();
+</script>
 
 <section class="block-section">
 <h2>붙임3 — 인버터 점검기록표</h2>
@@ -630,6 +668,7 @@ function clearPointsForPhoto(name) {
 
 // 열화상에서 추출한 embedded 실화상을 같은 블록의 실화상 슬롯에 자동 채움
 //   photo_X_ut → photo_X_uv (상단), photo_X_lt → photo_X_lv (하단)
+// v93 — 이미 사진이 들어있으면 덮어쓰지 않음 (PC↔모바일 사진 슬롯 일관성)
 function autoFillVisible(irName, visibleDataUrl) {
   if (!visibleDataUrl) return;
   var m = irName.match(/^photo_(\d+)_(ut|lt)$/);
@@ -637,7 +676,14 @@ function autoFillVisible(irName, visibleDataUrl) {
   var visName = 'photo_' + m[1] + '_' + (m[2] === 'ut' ? 'uv' : 'lv');
   var visInput = document.getElementById('file_' + visName);
   if (!visInput) return;
-  // dataURL → Blob → File
+  // v93 — 이미 사진이 있으면 덮어쓰지 않음
+  try {
+    var existing = sessionStorage.getItem(STORAGE_PREFIX + visName);
+    if (existing) {
+      console.log('[autoFillVisible] ' + visName + ' 이미 사진 있음 — 자동 채움 생략');
+      return;
+    }
+  } catch(e) {}
   fetch(visibleDataUrl).then(function(r){return r.blob();}).then(function(blob){
     var fname = 'visible_' + irName + '.jpg';
     var newFile = new File([blob], fname, { type: 'image/jpeg' });
@@ -646,7 +692,6 @@ function autoFillVisible(irName, visibleDataUrl) {
       dt.items.add(newFile);
       visInput.files = dt.files;
     } catch(e) {}
-    // 미리보기 갱신 + 리사이즈/저장 흐름
     showPreview(visName, visInput);
     console.log('[autoFillVisible] ' + irName + ' → ' + visName + ' 자동 채움');
   }).catch(function(e){ console.warn('autoFillVisible 실패', e); });
@@ -859,11 +904,42 @@ function getPixelFromEvent(prev, clientX, clientY) {
   };
 }
 
+// v93 — PC 단순 클릭으로도 SP 즉시 찍히도록 안전망 추가
+//   (mousedown → mouseup이 onDragStart/onDragEnd로 처리되지만, PC에서 클릭 이벤트만 들어오는 경우 대비)
+var _lastSpClickTime = 0;
 function onPreviewClick(ev) {
-  // 모바일과 PC 마우스 모두 onDragStart/onDragEnd 흐름에서 처리됨
-  // (mousedown → mousemove → mouseup → click 순서이지만 click 시점에 _dragState 이미 null)
-  // click은 fallback 또는 중복 방지를 위해 무시
-  return;
+  if (!_activeName || !_activeMode) return;
+  if (_activeMode.indexOf('sp') !== 0) return;  // SP 모드만 처리 (BX는 드래그 필요)
+  // 중복 처리 방지: onDragEnd가 이미 처리했으면 200ms 내 click은 무시
+  var now = Date.now();
+  if (now - _lastSpClickTime < 300) return;
+  _lastSpClickTime = now;
+  var prev = ev.currentTarget;
+  var p = getPixelFromEvent(prev, ev.clientX, ev.clientY);
+  if (!p) return;
+  var info = window._flirDecoded[_activeName];
+  if (!info) return;
+  var idx = parseInt(_activeMode.substring(2));
+  var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+            '&sp' + idx + '_x=' + p.rx + '&sp' + idx + '_y=' + p.ry;
+  fetch(url).then(function(r){return r.json();}).then(function(data){
+    if (data.points && data.points.length) {
+      var pt = data.points[0];
+      info.sp[idx] = { x: p.rx, y: p.ry, t: pt.temp,
+                       dispX: p.dispX, dispY: p.dispY,
+                       rectW: p.rectW, rectH: p.rectH };
+      drawMarkers(_activeName);
+      var _off = getOffset(_activeName);
+      autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
+      persistMarkers(_activeName);
+      // 다음 SP로 자동 이동
+      var next = idx + 1;
+      if (next <= 3) {
+        var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
+        if (nb) toggleMode(_activeName, 'sp' + next, nb);
+      } else { exitMode(); }
+    }
+  }).catch(function(e){ console.error('[SP click] err', e); });
 }
 
 function onDragStart(ev) {
@@ -949,16 +1025,19 @@ function onDragEnd(ev) {
   if (!info) return;
   var idx = parseInt(mode.substring(2));
 
-  // === SP 모드 — 짧은 탭(드래그 안 함) ===
-  if (mode.indexOf('sp') === 0 && !didMove) {
+  // === SP 모드 — 클릭(짧은 탭) 또는 짧은 드래그 모두 점 찍기 ===
+  // v93 — didMove 무관하게 끝 위치(e)에 SP 찍기. PC에서 마우스 미세 흔들림으로 SP 안 찍히던 문제 수정.
+  if (mode.indexOf('sp') === 0) {
+    _lastSpClickTime = Date.now();  // onPreviewClick 중복 방지
+    var sx = e.rx, sy = e.ry, sdX = e.dispX, sdY = e.dispY, sW = e.rectW, sH = e.rectH;
     var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
-              '&sp' + idx + '_x=' + s.rx + '&sp' + idx + '_y=' + s.ry;
+              '&sp' + idx + '_x=' + sx + '&sp' + idx + '_y=' + sy;
     fetch(url).then(function(r){return r.json();}).then(function(data){
       if (data.points && data.points.length) {
         var pt = data.points[0];
-        info.sp[idx] = { x: s.rx, y: s.ry, t: pt.temp,
-                         dispX: s.dispX, dispY: s.dispY,
-                         rectW: s.rectW, rectH: s.rectH };
+        info.sp[idx] = { x: sx, y: sy, t: pt.temp,
+                         dispX: sdX, dispY: sdY,
+                         rectW: sW, rectH: sH };
         drawMarkers(_activeName);
         var _off = getOffset(_activeName);
         autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
@@ -970,8 +1049,10 @@ function onDragEnd(ev) {
           var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
           if (nb) toggleMode(_activeName, 'sp' + next, nb);
         } else { exitMode(); }
+      } else {
+        console.warn('[SP] /api/flir_temp 응답에 points 없음:', data);
       }
-    }).catch(function(e) { console.error(e); });
+    }).catch(function(e) { console.error('[SP] fetch err', e); });
     return;
   }
 
@@ -1684,16 +1765,8 @@ function generatePdf(ev) {
   return false;
 }
 
-// v92 — 윈도우 리사이즈 시 모든 열화상 슬롯의 마커 재그리기 (좌표 정확 유지)
 window.addEventListener('resize', function() {
   if (!window._flirDecoded) return;
   clearTimeout(window._redrawTimer);
   window._redrawTimer = setTimeout(function() {
-    Object.keys(window._flirDecoded).forEach(function(name) {
-      try { drawMarkers(name); } catch(e) {}
-    });
-  }, 150);
-});
-</script>
-</body>
-</html>
+    Object.keys(window._flirDecod

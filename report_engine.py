@@ -572,28 +572,126 @@ COVER_YM_BOX = {
     "티튜브":     (1110, 1870, 1370, 1935),
 }
 
-def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
-    """사이트 표지 PNG를 로드하고 연월 영역을 덮어쓴 뒤 새 연월을 그림.
+def _normalize_ym(year_month: str) -> str:
+    """'2026.06' / '2026-06' / '2026/6' → '2026. 06'."""
+    s = year_month.strip().replace("-", ".").replace("/", ".")
+    parts = [p.strip() for p in s.split(".") if p.strip()]
+    if len(parts) >= 2:
+        return f"{parts[0]}. {parts[1].zfill(2)}"
+    return s
 
-    year_month: "2026.06" 또는 "2026. 06" 형식. 빈 문자열이면 원본 그대로.
+
+def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
+    """사이트 표지 PDF의 연월 텍스트만 동적으로 교체한 후 이미지로 렌더링.
+
+    v94 — 원본 PDF를 그대로 사용해서 모든 텍스트/배치/글꼴/테두리가 원본과 완벽 일치.
+          연월 부분만 PyMuPDF redact으로 교체.
+    year_month: "2026.06" 등. 빈 문자열이면 원본 그대로.
     """
+    import fitz
+    # 1) PDF 원본 우선 (벡터 품질 유지)
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"cover_{site_name}.pdf")
+    if os.path.exists(pdf_path):
+        doc = fitz.open(pdf_path)
+        page = doc[0]
+        new_ym = _normalize_ym(year_month) if year_month else ""
+        if new_ym:
+            # 원본 텍스트에서 "20YY. MM" 패턴 찾기 (이미 정규화 형식)
+            target_text = None
+            target_bbox = None
+            target_size = None
+            target_font_xref = None
+            for block in page.get_text("dict")["blocks"]:
+                if "lines" not in block:
+                    continue
+                for line in block["lines"]:
+                    for span in line["spans"]:
+                        t = span["text"].strip()
+                        # "20YY. MM" 또는 "20YY.MM" 형태 (연월만)
+                        import re as _re
+                        if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
+                            target_text = t
+                            target_bbox = fitz.Rect(*span["bbox"])
+                            target_size = span["size"]
+                            target_font_xref = block  # not used
+                            break
+                    if target_text:
+                        break
+                if target_text:
+                    break
+
+            if target_bbox is not None:
+                # 폰트 추출 (원본 페이지의 동일 폰트 사용)
+                cover_font_path = None
+                fonts = page.get_fonts()
+                # 해당 span이 어느 font를 쓰는지 찾기
+                target_font_name = None
+                for block in page.get_text("dict")["blocks"]:
+                    if "lines" not in block:
+                        continue
+                    for line in block["lines"]:
+                        for span in line["spans"]:
+                            if span["text"].strip() == target_text:
+                                target_font_name = span["font"]
+                                break
+                # CIDFont+F1 등 → page.get_fonts에서 매칭 후 추출
+                for xref, ext, ftype, fname, fpref, fenc in fonts:
+                    if fname == target_font_name:
+                        _, _, _, content = doc.extract_font(xref)
+                        cover_font_path = os.path.join(_PDF_TPL_DIR, f"_extracted_{fname}.ttf")
+                        with open(cover_font_path, "wb") as _ff:
+                            _ff.write(content)
+                        break
+
+                # 원본 텍스트 위에 흰 사각형 (redact)
+                pad = 1.0
+                white_rect = fitz.Rect(target_bbox.x0 - pad, target_bbox.y0 - pad,
+                                       target_bbox.x1 + pad, target_bbox.y1 + pad)
+                page.draw_rect(white_rect, color=(1, 1, 1), fill=(1, 1, 1))
+
+                # 새 연월 텍스트 삽입 — 같은 폰트, 같은 크기, 같은 위치
+                try:
+                    if cover_font_path:
+                        page.insert_font(fontname="cf1", fontfile=cover_font_path)
+                        font_name = "cf1"
+                    else:
+                        font_name = "helv"
+                    # 텍스트를 원본과 같은 박스 중앙에 배치
+                    # baseline = bbox.y1 (PDF text origin은 baseline)
+                    # 원본 텍스트 너비 측정해서 같은 위치 (왼쪽 정렬 유지)
+                    page.insert_text(
+                        (target_bbox.x0, target_bbox.y0 + target_size),
+                        new_ym,
+                        fontname=font_name,
+                        fontsize=target_size,
+                        color=(0, 0, 0),
+                    )
+                except Exception as e:
+                    print(f"[WARN] cover insert_text 실패: {e!r}")
+
+        # 2) 렌더링 — A4 2481x3509에 맞춰 스케일
+        scale_x = 2481 / page.rect.width
+        scale_y = 3509 / page.rect.height
+        pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
+        img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
+        # 정확한 2481x3509로 리사이즈 (소수점 차이 보정)
+        if img.size != (2481, 3509):
+            img = img.resize((2481, 3509), Image.LANCZOS)
+        doc.close()
+        return img
+
+    # 3) PDF 없으면 기존 PNG 폴백
     fn = os.path.join(_PDF_TPL_DIR, f"cover_{site_name}.png")
     if not os.path.exists(fn):
         return Image.new("RGB", (2481, 3509), "white")
     img = Image.open(fn).convert("RGB")
     if not year_month:
         return img
-
-    # 사이트별 박스 좌표 (없으면 기본값)
     box = COVER_YM_BOX.get(site_name, (1100, 2065, 1380, 2135))
     x1, y1, x2, y2 = box
     d = ImageDraw.Draw(img)
     d.rectangle([x1, y1, x2, y2], fill="white")
-    # year_month 정규화: "2026.06" → "2026. 06"
-    s = year_month.strip().replace("-", ".").replace("/", ".")
-    parts = [p.strip() for p in s.split(".") if p.strip()]
-    if len(parts) >= 2:
-        s = f"{parts[0]}. {parts[1].zfill(2)}"
+    s = _normalize_ym(year_month)
     font_path = LATIN_R or KR_FONT
     try:
         font = ImageFont.truetype(font_path, 52)
@@ -601,8 +699,7 @@ def render_cover(site_name: str, year_month: str = "") -> "Image.Image":
         font = ImageFont.load_default()
     bbox = d.textbbox((0, 0), s, font=font)
     tw = bbox[2] - bbox[0]; th = bbox[3] - bbox[1]
-    cx = (x1 + x2) // 2
-    cy = (y1 + y2) // 2
+    cx = (x1 + x2) // 2; cy = (y1 + y2) // 2
     d.text((cx - tw // 2, cy - th // 2 - bbox[1]), s, fill="black", font=font)
     return img
 
@@ -625,6 +722,206 @@ def _has_korean(s: str) -> bool:
         cp = ord(ch)
         if 0xAC00 <= cp <= 0xD7A3: return True
     return False
+
+
+# ============================================================
+# v95/v96 — 페이지 2/3: 원본 PDF 그대로 사용 + 편집 가능 텍스트만 redact + 교체
+# ============================================================
+# 기본값 — 사용자가 수정 안 하면 이 값 사용
+DEFAULT_P2 = {
+    "inspection_date": "",   # "2026년 05월 08일"
+    "items": [               # 주요 점검사항 1~6 (고정 기본)
+        "1. 특고압 전기설비 외관 점검",
+        "2. 적외선 열화상 진단",
+        "3. 모듈 외관 점검",
+        "4. 전압, 전류, 발전량 등 측정",
+        "5. 인버터 판넬 점검",
+        "6. 접속반 점검",
+    ],
+    "results": [             # 점검결과 및 종합의견 1-1 ~ 6-1
+        "1-1. 외관 이상없음",
+        "2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음",
+        "3-1. 모듈외관이 손상되거나 오염된 부분은 없음",
+        "4-1. 전압 전류, 발전량 측정결과 현장 이상 없음",
+        "5-1. 인버터 판넬 이상 없음",
+        "6-1. 접속반 이상 없음",
+    ],
+}
+
+
+def _extract_page_font(doc, page, target_font_name, save_dir):
+    """페이지에서 사용하는 폰트 추출 → ttf 파일 경로 반환."""
+    fonts = page.get_fonts()
+    for xref, ext, ftype, fname, fpref, fenc in fonts:
+        if fname == target_font_name:
+            try:
+                _, _, _, content = doc.extract_font(xref)
+                path = os.path.join(save_dir, f"_extracted_{fname}.ttf")
+                with open(path, "wb") as f:
+                    f.write(content)
+                return path
+            except Exception as e:
+                print(f"[WARN] font extract fail {fname}: {e}")
+                return None
+    return None
+
+
+def _patch_pdf_text(page, doc, replacements):
+    """페이지의 특정 텍스트 span을 새 텍스트로 교체.
+
+    replacements: dict mapping original_text → new_text.
+    원본의 폰트/크기/위치를 그대로 사용.
+    """
+    import fitz
+    if not replacements:
+        return
+    extracted_fonts = {}  # font_name → ttf path
+    page_dict = page.get_text("dict")
+    for block in page_dict["blocks"]:
+        if "lines" not in block:
+            continue
+        for line in block["lines"]:
+            for span in line["spans"]:
+                orig = span["text"]
+                # 원본 텍스트가 replacements에 있으면 (정확히 또는 strip 후 일치)
+                new_text = None
+                if orig in replacements:
+                    new_text = replacements[orig]
+                elif orig.strip() in replacements:
+                    new_text = replacements[orig.strip()]
+                if new_text is None:
+                    continue
+                if new_text == orig.strip():
+                    continue  # 변경 없음
+                bbox = fitz.Rect(*span["bbox"])
+                font_name = span["font"]
+                font_size = span["size"]
+                # 원본 텍스트 위에 흰 사각형 (살짝 여유)
+                pad = 0.5
+                cover_rect = fitz.Rect(bbox.x0 - pad, bbox.y0 - pad,
+                                       bbox.x1 + pad, bbox.y1 + pad)
+                page.draw_rect(cover_rect, color=(1, 1, 1), fill=(1, 1, 1))
+                # 폰트 추출 (캐시)
+                if font_name not in extracted_fonts:
+                    fp = _extract_page_font(doc, page, font_name, _PDF_TPL_DIR)
+                    extracted_fonts[font_name] = fp
+                fp = extracted_fonts[font_name]
+                pdf_font = None
+                try:
+                    if fp:
+                        pdf_font = f"f_{abs(hash(font_name)) % 100000}"
+                        page.insert_font(fontname=pdf_font, fontfile=fp)
+                    else:
+                        pdf_font = "helv"
+                    # 텍스트 삽입 위치: bbox.x0 + baseline
+                    # baseline ≈ bbox.y1 - descent. PDF text origin = baseline
+                    # 안전한 baseline: bbox.y0 + font_size * 0.85
+                    baseline_y = bbox.y0 + font_size * 0.85
+                    page.insert_text(
+                        (bbox.x0, baseline_y),
+                        new_text,
+                        fontname=pdf_font,
+                        fontsize=font_size,
+                        color=(0, 0, 0),
+                    )
+                except Exception as e:
+                    print(f"[WARN] insert_text fail {orig!r} → {new_text!r}: {e}")
+
+
+def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
+              items: list = None, results: list = None) -> "Image.Image":
+    """페이지 2 — 원본 PDF에 편집 가능 텍스트만 덮어쓴 후 이미지로 변환.
+
+    year_month: 표지와 동일한 연월 (자동 동기화)
+    inspection_date: '2026년 05월 08일' 형식
+    items: 주요 점검사항 6개 리스트 (None이면 기본값)
+    results: 점검결과 및 종합의견 6개 리스트 (None이면 기본값)
+    """
+    import fitz
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"p2_{site_name}.pdf")
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    doc = fitz.open(pdf_path)
+    page = doc[0]
+
+    # 교체할 텍스트 매핑 (원본 → 새 텍스트)
+    replacements = {}
+    # 점검일
+    orig_date_candidates = [s for s in [
+        "2026년 05월 08일", "2026년 04월 08일", "2026년 05월 09일", "2026년 04월 09일",
+    ]]
+    if inspection_date:
+        # 페이지 내 "20XX년 XX월 XX일" 패턴 찾아서 교체
+        for block in page.get_text("dict")["blocks"]:
+            if "lines" not in block: continue
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    t = span["text"].strip()
+                    import re as _re
+                    if _re.fullmatch(r"20\d{2}년\s*\d{1,2}월\s*\d{1,2}일", t):
+                        replacements[t] = inspection_date
+    # year_month (페이지 2에도 있음)
+    if year_month:
+        new_ym = _normalize_ym(year_month)
+        for block in page.get_text("dict")["blocks"]:
+            if "lines" not in block: continue
+            for line in block["lines"]:
+                for span in line["spans"]:
+                    t = span["text"].strip()
+                    import re as _re
+                    if _re.fullmatch(r"20\d{2}\.\s*\d{1,2}", t):
+                        replacements[t] = new_ym
+    # 주요 점검사항 1~6
+    use_items = items if (items and len(items) == 6) else DEFAULT_P2["items"]
+    for orig, new in zip(DEFAULT_P2["items"], use_items):
+        if new and new != orig:
+            replacements[orig] = new
+    # 점검결과 1-1 ~ 6-1
+    use_results = results if (results and len(results) == 6) else DEFAULT_P2["results"]
+    for orig, new in zip(DEFAULT_P2["results"], use_results):
+        if new and new != orig:
+            replacements[orig] = new
+
+    _patch_pdf_text(page, doc, replacements)
+
+    # 렌더링
+    scale_x = 2481 / page.rect.width
+    scale_y = 3509 / page.rect.height
+    pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
+    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
+    if img.size != (2481, 3509):
+        img = img.resize((2481, 3509), Image.LANCZOS)
+    doc.close()
+    return img
+
+
+def _render_static_page(site_name: str, prefix: str) -> "Image.Image":
+    """원본 PDF 페이지를 그대로 이미지로 반환 (편집 없음)."""
+    import fitz
+    pdf_path = os.path.join(_PDF_TPL_DIR, f"{prefix}_{site_name}.pdf")
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    doc = fitz.open(pdf_path)
+    page = doc[0]
+    scale_x = 2481 / page.rect.width
+    scale_y = 3509 / page.rect.height
+    pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
+    img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
+    if img.size != (2481, 3509):
+        img = img.resize((2481, 3509), Image.LANCZOS)
+    doc.close()
+    return img
+
+
+def render_p3(site_name: str) -> "Image.Image":
+    """페이지 3 (붙임 서류 목록) — 원본 그대로."""
+    return _render_static_page(site_name, "p3")
+
+
+def render_p4(site_name: str) -> "Image.Image":
+    """페이지 4 (안전진단장비) — 원본 그대로."""
+    return _render_static_page(site_name, "p4")
+
 
 def render_b3(site_name: str, run_values: dict, chk_values: dict, page_num: int = 6) -> "Image.Image":
     """붙임3 인버터 점검기록표 — 사이트별 PNG 위에 운전상황+점검결과 덮어쓰기."""
@@ -831,19 +1128,39 @@ SITE_PRESETS = {
 
 def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         year_month: str = "", include_cover: bool = True,
-                        b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False):
+                        b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
+                        inspection_date: str = "", p2_items: list = None, p2_results: list = None,
+                        include_p2: bool = True, include_p3: bool = True, include_p4: bool = True):
     """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
-    
-    year_month: "2026.06" 형식. 표지에 표시. 빈 문자열이면 원본 PDF의 연월 그대로.
-    include_cover: True면 첫 페이지로 표지 추가
+
+    year_month: "2026.06" 형식. 표지/페이지2에 표시.
+    inspection_date: 페이지2 점검일 '2026년 06월 03일' 형식.
+    p2_items: 주요 점검사항 6개 (None이면 기본값).
+    p2_results: 점검결과 6개 (None이면 기본값).
     """
     pages = []
-    # 첫 페이지: 표지
     if include_cover:
         try:
             pages.append(render_cover(site_name, year_month))
         except Exception as _ce:
             print(f"[WARN] 표지 합성 실패: {_ce}")
+    if include_p2:
+        try:
+            pages.append(render_p2(site_name, year_month=year_month,
+                                   inspection_date=inspection_date,
+                                   items=p2_items, results=p2_results))
+        except Exception as _p2e:
+            print(f"[WARN] 페이지2 합성 실패: {_p2e}")
+    if include_p3:
+        try:
+            pages.append(render_p3(site_name))
+        except Exception as _p3e:
+            print(f"[WARN] 페이지3 합성 실패: {_p3e}")
+    if include_p4:
+        try:
+            pages.append(render_p4(site_name))
+        except Exception as _p4e:
+            print(f"[WARN] 페이지4 합성 실패: {_p4e}")
     if include_b3:
         try:
             pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
