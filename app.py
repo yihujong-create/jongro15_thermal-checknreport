@@ -340,7 +340,13 @@ def generate():
         include_p2    = bool(request.form.get("pdf_include_p2"))
         include_p3    = bool(request.form.get("pdf_include_p3"))
         include_p4    = bool(request.form.get("pdf_include_p4"))
+        # v112 — 붙임1~6 (1=p4와 동일, 4/5/6 신규)
+        include_b1    = bool(request.form.get("pdf_include_b1"))
+        include_b2    = bool(request.form.get("pdf_include_b2"))
         include_b3    = bool(request.form.get("pdf_include_b3"))
+        include_b4    = bool(request.form.get("pdf_include_b4"))
+        include_b5    = bool(request.form.get("pdf_include_b5"))
+        include_b6    = bool(request.form.get("pdf_include_b6"))
         include_b7    = bool(request.form.get("pdf_include_b7"))
         include_b8    = bool(request.form.get("pdf_include_b8"))
         # 붙임3 입력값 수집
@@ -366,7 +372,12 @@ def generate():
             include_p2=include_p2,
             include_p3=include_p3,
             include_p4=include_p4,
+            include_b1=include_b1,
+            include_b2=include_b2,
             include_b3=include_b3,
+            include_b4=include_b4,
+            include_b5=include_b5,
+            include_b6=include_b6,
             inspection_date=inspection_date,
             p2_items=p2_items,
             p2_results=p2_results,
@@ -665,7 +676,7 @@ def api_draft(site_name):
 @app.route("/api/preview/<site_name>/<prefix>")
 @login_required
 def api_preview_page(site_name, prefix):
-    if prefix not in ("cover", "p2", "p3", "p4"):
+    if prefix not in ("cover", "p2", "p3", "p4", "b1", "b2", "b4", "b5", "b6"):
         return "bad", 400
     try:
         import fitz

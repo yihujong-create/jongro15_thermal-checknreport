@@ -820,13 +820,31 @@ def render_p3(site_name: str) -> "Image.Image":
 
 
 def render_p4(site_name: str) -> "Image.Image":
-    """페이지 4 — 원본 그대로."""
+    """페이지 4 (붙임1) — 원본 그대로."""
     pdf_path = _template_pdf_path("p4", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
     doc.close()
     return img
+
+
+# v112 — 정적 페이지 렌더 함수 (붙임1~6, 9, 10) — 원본 PDF 그대로
+def render_static_page(site_name: str, prefix: str) -> "Image.Image":
+    """templates_pdf/<prefix>_<site>.pdf를 그대로 이미지로 반환."""
+    pdf_path = _template_pdf_path(prefix, site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
+    doc.close()
+    return img
+
+
+def render_b1(site_name): return render_static_page(site_name, "b1")
+def render_b2(site_name): return render_static_page(site_name, "b2")
+def render_b4(site_name): return render_static_page(site_name, "b4")
+def render_b5(site_name): return render_static_page(site_name, "b5")
+def render_b6(site_name): return render_static_page(site_name, "b6")
 
 
 
@@ -1055,7 +1073,9 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         year_month: str = "", include_cover: bool = True,
                         b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
-                        include_p2: bool = True, include_p3: bool = True, include_p4: bool = True):
+                        include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
+                        include_b1: bool = True, include_b2: bool = True,
+                        include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
     """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
 
     year_month: "2026.06" 형식. 표지/페이지2에 표시.
@@ -1081,16 +1101,38 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
             pages.append(render_p3(site_name))
         except Exception as _e:
             print(f"[WARN] 페이지3 합성 실패: {_e}")
-    if include_p4:
+    # v112 — 원본 PDF 페이지 순서: 표지→p2→p3→붙임1→붙임2→붙임3→붙임4→붙임5→붙임6→붙임7→붙임8
+    # 붙임1 (안전진단장비) = p4
+    if include_p4 or include_b1:
         try:
-            pages.append(render_p4(site_name))
+            pages.append(render_p4(site_name))  # 붙임1
         except Exception as _e:
-            print(f"[WARN] 페이지4 합성 실패: {_e}")
+            print(f"[WARN] 붙임1 합성 실패: {_e}")
+    if include_b2:
+        try:
+            pages.append(render_b2(site_name))
+        except Exception as _e:
+            print(f"[WARN] 붙임2 합성 실패: {_e}")
     if include_b3:
         try:
             pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _b3e:
-            print(f"[WARN] 붙임3 합성 실패: {_b3e}")
+        except Exception as _e:
+            print(f"[WARN] 붙임3 합성 실패: {_e}")
+    if include_b4:
+        try:
+            pages.append(render_b4(site_name))
+        except Exception as _e:
+            print(f"[WARN] 붙임4 합성 실패: {_e}")
+    if include_b5:
+        try:
+            pages.append(render_b5(site_name))
+        except Exception as _e:
+            print(f"[WARN] 붙임5 합성 실패: {_e}")
+    if include_b6:
+        try:
+            pages.append(render_b6(site_name))
+        except Exception as _e:
+            print(f"[WARN] 붙임6 합성 실패: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
@@ -1101,8 +1143,7 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         pages.append(render_b8(items, page_num))
         page_num += 1
     if not pages:
-        raise ValueError("PDF에 포함된 페이지가 없습니다. 'PDF 포함 페이지'에서 최소 1개 이상 체크해주세요.")
-    # A4 200 DPI downsample (memory)
+        raise ValueError("PDF empty")
     import gc
     A4_PX = (1654, 2339)
     first = pages[0].convert("RGB")
@@ -1116,11 +1157,7 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         append_imgs.append(rgb)
     pages.clear()
     gc.collect()
-    first.save(
-        out_path, "PDF", resolution=200.0,
-        save_all=True,
-        append_images=append_imgs,
-    )
+    first.save(out_path, "PDF", resolution=200.0, save_all=True, append_images=append_imgs)
     del first, append_imgs
     gc.collect()
     return out_path

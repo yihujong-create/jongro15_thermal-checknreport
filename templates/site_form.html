@@ -194,8 +194,12 @@ body{padding-bottom:42px !important;}
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p2" form="report-form" value="1" checked> 2P</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p3" form="report-form" value="1" checked> 3P</label>
-  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p4" form="report-form" value="1" checked> 4P</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p4" form="report-form" value="1" checked> 붙임1</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b2" form="report-form" value="1" checked> 붙임2</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b4" form="report-form" value="1" checked> 붙임4</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b5" form="report-form" value="1" checked> 붙임5</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b6" form="report-form" value="1" checked> 붙임6</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8</label>
   <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체</button>
@@ -1707,18 +1711,4 @@ function loadReport(id) {
     window._flirDecoded = {};
     var loadPhotoCount = Object.keys((res.data && res.data.photos) || {}).length;
     console.log('[load] photos=' + loadPhotoCount);
-    populateFormData(res.data);
-    var nameInp = document.getElementById('report-name');
-    if (nameInp) nameInp.value = res.name || '';
-    currentReportId = res.id;
-    closeLoadDialog();
-    setAutosaveStatus('saved', '✓ 불러옴 (사진 ' + loadPhotoCount + '장 복원 중)');
-    setTimeout(function() {
-      var el = document.getElementById('autosave-status');
-      if (el && el.textContent.indexOf('복원 중') >= 0) setAutosaveStatus('      try { drawMarkers(name); } catch(e) {}
-    });
-  }, 150);
-});
-</script>
-</body>
-</html>
+    populateFormData(res.data
