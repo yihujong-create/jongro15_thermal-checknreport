@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Language" content="ko">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{{ site_name }} 보고서 입력</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=88">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=90">
 <style>
 .photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 html,body{overflow-x:hidden!important;max-width:100%!important;}
@@ -652,26 +652,41 @@ function autoFillVisible(irName, visibleDataUrl) {
   }).catch(function(e){ console.warn('autoFillVisible 실패', e); });
 }
 
-function tryFlirAnalysis(name, file) {
+// v90 — preserveMarkers=true면 기존 sp/bx 좌표 보존 (불러오기 경로). 새 사진 추가 경로(false)에서만 초기화.
+function tryFlirAnalysis(name, file, preserveMarkers) {
   if (!/_(ut|lt)$/.test(name)) return;
   var fd = new FormData();
   fd.append('photo', file);
   fetch('/api/flir_decode', { method: 'POST', body: fd }).then(function(r){return r.json();}).then(function(data){
-    // embedded 실화상 추출 가능하면 같은 블록 실화상 슬롯에 자동 채움 (FLIR 메타 유무 관계없이)
     if (data && data.visible_image_b64) {
       autoFillVisible(name, data.visible_image_b64);
     }
     if (!data || !data.is_flir) { setFlirStatus(name, '(FLIR 메타 없음)', true); return; }
-    window._flirDecoded[name] = {
-      hash: data.hash, width: data.width, height: data.height,
-      sp: {1:null,2:null,3:null}, bx: {1:null,2:null,3:null},
-      centerTemp: null
-    };
+    var prev = (window._flirDecoded && window._flirDecoded[name]) || null;
+    window._flirDecoded = window._flirDecoded || {};
+    if (preserveMarkers && prev) {
+      // 불러오기 경로 — sp/bx 좌표는 그대로 유지, width/height/hash만 갱신
+      window._flirDecoded[name] = {
+        hash: data.hash, width: data.width, height: data.height,
+        sp: prev.sp || {1:null,2:null,3:null},
+        bx: prev.bx || {1:null,2:null,3:null},
+        centerTemp: prev.centerTemp || null
+      };
+    } else {
+      window._flirDecoded[name] = {
+        hash: data.hash, width: data.width, height: data.height,
+        sp: {1:null,2:null,3:null}, bx: {1:null,2:null,3:null},
+        centerTemp: null
+      };
+      // 새 사진 추가 경로일 때만 Point 1/2/3 자동 초기화
+      clearPointsForPhoto(name);
+    }
     setFlirStatus(name, '✓ FLIR ' + data.width + '×' + data.height + ' · ' + data.temp_min + '°C ~ ' + data.temp_max + '°C');
-    // 새 열화상 사진이 들어오면 해당 Point 1/2/3 자동 초기화
-    clearPointsForPhoto(name);
     showControls(name);
-    // (중앙 온도 표시 — 사용자 요청으로 제거됨)
+    // v90 — 보존된 sp/bx가 있으면 다시 그리기 (위치 정확 일치)
+    if (preserveMarkers) {
+      try { drawMarkers(name); } catch (e) { console.warn('drawMarkers err', name, e); }
+    }
   }).catch(function(e) { console.warn('FLIR 분석 오류', e); });
 }
 
@@ -1280,7 +1295,32 @@ function populateFormData(data) {
     }
   }
   // 사진 복원 — 동기 정렬: sessionStorage 먼저 쓰고 미리보기 + 비동기로 input.files
+  // v89 — 열화상 슬롯(*_ut/*_lt 또는 b8_..._photo)은 SP/BX 컨트롤 무조건 표시 + 가능 시 FLIR 재분석
   var photoCount = 0, photoRestored = 0;
+
+  function _isThermalSlot(slot) {
+    // photo_<n>_ut / photo_<n>_lt 가 열화상. 그 외 *_uv/*_lv는 실화상.
+    return /_(ut|lt)$/.test(slot);
+  }
+
+  function _afterPhotoReady(slot, file, obj) {
+    // 1) obj.markers가 있으면 _flirDecoded에 복원
+    if (obj && obj.markers && typeof obj.markers === 'object') {
+      window._flirDecoded = window._flirDecoded || {};
+      window._flirDecoded[slot] = Object.assign({}, window._flirDecoded[slot] || {}, obj.markers);
+    }
+    // 2) 열화상 슬롯이면 SP/BX 컨트롤 무조건 표시
+    if (_isThermalSlot(slot)) {
+      try { showControls(slot); } catch(e) { console.warn('showControls err', slot, e); }
+      // 3) 파일이 있으면 FLIR 재분석 — preserveMarkers=true로 호출해서 sp/bx 좌표 유지
+      if (file) {
+        try { tryFlirAnalysis(slot, file, true); } catch(e) { console.warn('FLIR 재분석 실패', slot, e); }
+      }
+      // 4) 마커 그리기 (저장된 좌표 있을 때 — FLIR 재분석 결과 도착 전 즉시 한 번)
+      try { drawMarkers(slot); } catch(e) {}
+    }
+  }
+
   if (data.photos) {
     var slots = Object.keys(data.photos);
     photoCount = slots.length;
@@ -1298,38 +1338,49 @@ function populateFormData(data) {
                   var mainInput = document.getElementById('file_' + _slot);
                   if (mainInput) {
                     setInputFile(mainInput, file);
-                    photoRestored++;
-                    if (photoRestored === photoCount) {
-                      setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
-                      setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
-                    }
                   }
-                }).catch(function(err){ console.error(err); setAutosaveStatus('error','⚠ 사진 ' + _slot + ' 복원 실패'); });
+                  // v89 — input.files 설정 성공/실패와 무관하게 컨트롤 복원
+                  _afterPhotoReady(_slot, file, _obj);
+                  photoRestored++;
+                  if (photoRestored === photoCount) {
+                    setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
+                    setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+                  }
+                }).catch(function(err){
+                  console.error(err);
+                  setAutosaveStatus('error','⚠ 사진 ' + _slot + ' 파일 변환 실패');
+                  // 그래도 컨트롤은 표시 (수동 모드)
+                  _afterPhotoReady(_slot, null, _obj);
+                });
               } else {
                 console.error('[populate] 서버 photo 조회 실패: ' + _slot, res);
                 setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 서버에서 못 찾음');
+                _afterPhotoReady(_slot, null, _obj);
               }
             }).catch(function(err){
               console.error('[populate] /api/photo 통신 실패: ' + _slot, err);
               setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 통신 실패');
+              _afterPhotoReady(_slot, null, _obj);
             });
           })(slot, obj);
         } else if (obj && obj.dataUrl) {
-          renderPreview(slot, obj.dataUrl, obj.name || slot);
-          dataUrlToFile(obj.dataUrl, obj.name || (slot + '.jpg')).then(function(file) {
-            var mainInput = document.getElementById('file_' + slot);
-            if (mainInput) {
-              setInputFile(mainInput, file);
+          (function(_slot, _obj){
+            renderPreview(_slot, _obj.dataUrl, _obj.name || _slot);
+            dataUrlToFile(_obj.dataUrl, _obj.name || (_slot + '.jpg')).then(function(file) {
+              var mainInput = document.getElementById('file_' + _slot);
+              if (mainInput) { setInputFile(mainInput, file); }
+              _afterPhotoReady(_slot, file, _obj);
               photoRestored++;
               if (photoRestored === photoCount) {
                 setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
                 setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
               }
-            }
-          }).catch(function(err) {
-            console.error('[populate] dataUrlToFile 실패: ' + slot, err);
-            setAutosaveStatus('error', '⚠ 사진 ' + slot + ' 복원 실패');
-          });
+            }).catch(function(err) {
+              console.error('[populate] dataUrlToFile 실패: ' + _slot, err);
+              setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 복원 실패');
+              _afterPhotoReady(_slot, null, _obj);
+            });
+          })(slot, obj);
         } else {
           console.warn('[populate] ' + slot + ' photo_id/dataUrl 모두 없음. obj=', obj);
         }
@@ -1524,19 +1575,15 @@ function confirmNewReport() {
       inp.checked = inp.defaultChecked;
     });
   }
-  // form="report-form" 속성으로 연결된 외부 input도 초기화
   document.querySelectorAll('input[form="report-form"]').forEach(function(inp) {
     if (inp.type === 'text' || inp.type === 'number') inp.value = '';
     else if (inp.type === 'checkbox') inp.checked = inp.defaultChecked;
   });
-  // 미리보기 클리어
   document.querySelectorAll('.photo-preview').forEach(function(p) { p.innerHTML = '선택된 파일 없음'; });
-  // 마커/FLIR 컨트롤 클리어
   window._flirDecoded = {};
   document.querySelectorAll('.sp-controls, .bx-controls, .flir-status, .bx-result, .marker-overlay').forEach(function(el) {
     el.remove();
   });
-  // 보고서 이름 클리어
   var nameInp = document.getElementById('report-name');
   if (nameInp) nameInp.value = '';
   currentReportId = null;
@@ -1544,8 +1591,6 @@ function confirmNewReport() {
   setTimeout(function(){ setAutosaveStatus('',''); }, 3000);
 }
 
-// PDF 생성 시 사진 dataURL을 hidden input으로 폼에 첨부 → form submit
-// (submit 리스너에서도 동일 작업 수행됨 — 안전망 차원)
 function generatePdf(ev) {
   if (ev && ev.preventDefault) ev.preventDefault();
   var form = document.getElementById('report-form');
