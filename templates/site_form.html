@@ -226,7 +226,7 @@ body{padding-bottom:42px !important;}
 <div class="block-header"><span class="block-num">표지/2P</span><span class="block-title">{{ site_name }}</span></div>
 <div class="meta-row">
 <label>현장명<input type="text" value="{{ site_name }}" disabled></label>
-<label>점검일<input type="text" id="inspection-date" name="inspection_date" form="report-form" placeholder="예: 2026년 06월 03일"></label>
+<label>점검일시 (시 단위)<input type="datetime-local" id="inspection-date" name="inspection_date_raw" form="report-form" step="3600"><input type="hidden" id="inspection-date-fmt" name="inspection_date" form="report-form" value=""></label>
 <label>연·월 (자동)<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
 </div>
 <h3 class="b3-h3">주요 점검사항 (1~10, 비워두면 기본값)</h3>
@@ -259,18 +259,28 @@ body{padding-bottom:42px !important;}
 </section>
 
 <script>
-// 점검일 → 연월 자동 동기화
+// 점검일시(datetime-local) → 한글 포맷("2026년 06월 03일 14:30") + 연·월 자동 동기화
 (function() {
-  function _syncYm() {
+  function _onChange() {
     var dt = document.getElementById('inspection-date');
+    var fmt = document.getElementById('inspection-date-fmt');
     var ym = document.getElementById('cover-ym');
-    if (!dt || !ym) return;
-    var m = (dt.value || '').match(/(20\d{2})년\s*(\d{1,2})월/);
-    if (m) ym.value = m[1] + '.' + (m[2].length < 2 ? '0' + m[2] : m[2]);
+    if (!dt) return;
+    var v = dt.value || '';  // "YYYY-MM-DDTHH" (시 단위 step=3600)
+    var m = v.match(/^(\d{4})-(\d{2})-(\d{2})(?:T(\d{2}))?/);
+    if (!m) { if (fmt) fmt.value=''; return; }
+    var yy = m[1], mm = m[2], dd = m[3], hh = m[4] || '';
+    var korText = yy + '년 ' + mm + '월 ' + dd + '일';
+    if (hh) korText += ' ' + parseInt(hh, 10) + '시';
+    if (fmt) fmt.value = korText;
+    if (ym) ym.value = yy + '.' + mm;
   }
   document.addEventListener('DOMContentLoaded', function() {
     var dt = document.getElementById('inspection-date');
-    if (dt) dt.addEventListener('input', _syncYm);
+    if (dt) {
+      dt.addEventListener('change', _onChange);
+      dt.addEventListener('input', _onChange);
+    }
   });
 })();
 </script>
@@ -1730,7 +1740,6 @@ function generatePdf(ev) {
   return false;
 }
 
-// v92 — 윈도우 리사이즈 시 모든 열화상 슬롯의 마커 재그리기 (좌표 정확 유지)
 window.addEventListener('resize', function() {
   if (!window._flirDecoded) return;
   clearTimeout(window._redrawTimer);
