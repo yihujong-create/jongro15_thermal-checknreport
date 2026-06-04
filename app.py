@@ -567,7 +567,17 @@ def api_draft(site_name):
     conn.close()
     if not row:
         return jsonify({"draft": None})
-    r
+    return jsonify({
+        "draft": {
+            "id": row["id"],
+            "name": row["name"],
+            "site_name": row["site_name"],
+            "is_draft": True,
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "data": json.loads(row["data_json"]),
+        }
+    })
 
 @app.route("/healthz")
 def healthz():
