@@ -661,7 +661,29 @@ def api_draft(site_name):
     })
 
 
+# v111 — PDF preview endpoint
+@app.route("/api/preview/<site_name>/<prefix>")
+@login_required
+def api_preview_page(site_name, prefix):
+    if prefix not in ("cover", "p2", "p3", "p4"):
+        return "bad", 400
+    try:
+        import fitz
+        from report_engine import _template_pdf_path
+        pdf_path = _template_pdf_path(prefix, site_name)
+        if not os.path.exists(pdf_path):
+            return "not found", 404
+        doc = fitz.open(pdf_path)
+        page = doc[0]
+        zoom = 60 / 72
+        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+        jpg_bytes = pix.tobytes("jpeg", jpg_quality=70)
+        doc.close()
+        return jpg_bytes, 200, {"Content-Type": "image/jpeg", "Cache-Control": "public, max-age=3600"}
+    except Exception as e:
+        return f"error: {e}", 500
+
+
 @app.route("/healthz")
 def healthz():
-    """Render Health Check 엔드포인트 (인증 불필요)."""
     return "ok", 200
