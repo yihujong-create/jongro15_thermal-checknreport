@@ -335,6 +335,12 @@ def generate():
             p2_results.append(rv if rv else None)
         if not any(p2_items): p2_items = None
         if not any(p2_results): p2_results = None
+        # v115 — 페이지3 붙임 서류 목록 1~11
+        p3_items = []
+        for i in range(1, 12):
+            iv = (request.form.get(f"p3_item_{i}", "") or "").strip()
+            p3_items.append(iv if iv else None)
+        if not any(p3_items): p3_items = None
         # 페이지별 포함 여부
         include_cover = bool(request.form.get("pdf_include_cover"))
         include_p2    = bool(request.form.get("pdf_include_p2"))
@@ -381,6 +387,7 @@ def generate():
             inspection_date=inspection_date,
             p2_items=p2_items,
             p2_results=p2_results,
+            p3_items=p3_items,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )
@@ -673,28 +680,12 @@ def api_draft(site_name):
 
 
 # v111 — PDF preview endpoint
-@app.route("/api/preview/<site_name>/<prefix>")
+@app.route("/api/preview/<site>/<prefix>")
 @login_required
-def api_preview_page(site_name, prefix):
-    if prefix not in ("cover", "p2", "p3", "p4", "b1", "b2", "b4", "b5", "b6"):
-        return "bad", 400
-    try:
-        import fitz
-        from report_engine import _template_pdf_path
-        pdf_path = _template_pdf_path(prefix, site_name)
-        if not os.path.exists(pdf_path):
-            return "not found", 404
-        doc = fitz.open(pdf_path)
-        page = doc[0]
-        zoom = 60 / 72
-        pix = page.get_pixmap(matrix=fitz.Matrix(zoom, zoom))
-        jpg_bytes = pix.tobytes("jpeg", jpg_quality=70)
-        doc.close()
-        return jpg_bytes, 200, {"Content-Type": "image/jpeg", "Cache-Control": "public, max-age=3600"}
-    except Exception as e:
-        return f"error: {e}", 500
+def api_preview(site, prefix):
+    # v113에서 미리보기 섹션 삭제되어 더 이상 호출되지 않음. 안전한 stub.
+    return ("preview disabled", 410)
 
 
-@app.route("/healthz")
-def healthz():
-    return "ok", 200
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)

@@ -268,6 +268,20 @@ body{padding-bottom:42px !important;}
 <label>9-1<input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
 <label>10-1<input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
 </div>
+<h3 class="b3-h3">붙임 서류 목록 (페이지 3, 1~11, 비워두면 기본값)</h3>
+<div class="b3-grid">
+<label>1<input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
+<label>2<input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
+<label>3<input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
+<label>4<input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
+<label>5<input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
+<label>6<input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
+<label>7<input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
+<label>8<input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
+<label>9<input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
+<label>10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
+<label>11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
+</div>
 </div>
 </section>
 
@@ -1661,44 +1675,4 @@ function openLoadDialog() {
       list.appendChild(div);
     });
   }).catch(function(e) {
-    list.innerHTML = '<div class="load-empty">목록 로딩 실패</div>';
-    console.error(e);
-  });
-}
-
-function closeLoadDialog() {
-  document.getElementById('load-dialog-bg').classList.add('hidden');
-}
-
-function loadReport(id) {
-  fetch('/api/load/' + id).then(function(r){return r.json();}).then(function(res) {
-    if (!res || !res.data) { alert('불러오기 실패'); return; }
-    // 기존 sessionStorage 클리어
-    try {
-      var toRemove = [];
-      for (var i = 0; i < sessionStorage.length; i++) {
-        var k = sessionStorage.key(i);
-        if (k && k.indexOf(STORAGE_PREFIX) === 0) toRemove.push(k);
-      }
-      toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
-    } catch (e) {}
-    // 미리보기/마커 클리어
-    document.querySelectorAll('.photo-preview').forEach(function(p) { p.innerHTML = '선택된 파일 없음'; });
-    window._flirDecoded = {};
-    var loadPhotoCount = Object.keys((res.data && res.data.photos) || {}).length;
-    console.log('[load] photos=' + loadPhotoCount);
-    populateFormData(res.data);
-    var nameInp = document.getElementById('report-name');
-    if (nameInp) nameInp.value = res.name || '';
-    currentReportId = res.id;
-    closeLoadDialog();
-    setAutosaveStatus('saved', '✓ 불러옴 (사진 ' + loadPhotoCount + '장 복원 중)');
-    setTimeout(function() {
-      var el = document.getElementById('autosave-status');
-      if (el && el.textContent.indexOf('복원 중') >= 0) setAutosaveStatus('      try { drawMarkers(name); } catch(e) {}
-    });
-  }, 150);
-});
-</script>
-</body>
-</html>
+    list.innerHTML = '<div cl

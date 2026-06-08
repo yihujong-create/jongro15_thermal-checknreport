@@ -812,12 +812,85 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
     return img
 
 
-def render_p3(site_name: str) -> "Image.Image":
-    """페이지 3 — 원본 그대로."""
+# v115 — 페이지 3 (붙임 서류 목록) 사이트별 기본값
+DEFAULT_P3_ITEMS = {
+    "조달청 청사": [
+        "1. 안전진단장비 1부",
+        "2. 송 수전설비 점검기록표 1부",
+        "3. 인버터 점검기록표 1부",
+        "4. ACB PANEL 점검기록표 1부",
+        "5. 접속반 및 모듈 점검기록표 1부",
+        "6. 태양광발전설비 점검기록표 1부",
+        "7. 열화상분포 측정기록표 1부",
+        "8. 점검사진대지 1부",
+    ],
+    "비축기지": [
+        "1. 안전진단장비 1부",
+        "2. 송 수전설비 점검기록표 1부",
+        "3. 인버터 점검기록표 1부",
+        "4. ACB PANEL 점검기록표 1부",
+        "5. 접속반 및 모듈 점검기록표 1부",
+        "6. 태양광발전설비 점검기록표 1부",
+        "7. 열화상분포 측정기록표 1부",
+        "8. 점검사진대지 1부",
+        "9. 전기설비 절연저항 측정기록표 1부",
+        "10. 전기설비 접지저항 측정기록표 1부",
+        "11. 변압기 점검기록표 1부",
+    ],
+    "티튜브": [
+        "1. 안전진단장비 1부",
+        "2. 송 수전설비 점검기록표 1부",
+        "3. 인버터 점검기록표 1부",
+        "4. ACB PANEL 점검기록표 1부",
+        "5. 접속반 및 모듈 점검기록표 1부",
+        "6. 태양광발전설비 점검기록표 1부",
+        "7. 열화상분포 측정기록표 1부",
+        "8. 점검사진대지 1부",
+        "9. 전기설비 절연저항 측정기록표 1부",
+        "10. 전기설비 접지저항 측정기록표 1부",
+        "11. 변압기 점검기록표 1부",
+    ],
+}
+
+
+def render_p3(site_name: str, items: list = None) -> "Image.Image":
+    """페이지 3 — 붙임 서류 목록. items로 항목 텍스트 교체 가능."""
     pdf_path = _template_pdf_path("p3", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
-    img, _, doc, _, _ = _render_pdf_page_to_img(pdf_path)
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    # items가 있으면 PDF span을 찾아서 새 텍스트로 교체
+    try:
+        defaults = DEFAULT_P3_ITEMS.get(site_name, [])
+        if items and defaults:
+            d = ImageDraw.Draw(img)
+            replacements = {}
+            for i, orig in enumerate(defaults):
+                if i < len(items):
+                    new = items[i]
+                    if new and new.strip() and new.strip() != orig:
+                        replacements[orig] = new.strip()
+            if replacements:
+                for block in page.get_text("dict")["blocks"]:
+                    if "lines" not in block: continue
+                    for line in block["lines"]:
+                        for span in line["spans"]:
+                            orig = span["text"]
+                            new_text = (replacements.get(orig) or
+                                        replacements.get(orig.strip()))
+                            if not new_text or new_text == orig.strip():
+                                continue
+                            bb = span["bbox"]
+                            size_pt = span["size"]
+                            pad = 2
+                            d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                         bb[2]*sx + pad, bb[3]*sy + pad],
+                                        fill="white")
+                            size_px = int(size_pt * sy * 0.95)
+                            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1,
+                                        new_text, size_px)
+    except Exception as _e:
+        print(f"[WARN] render_p3 항목 교체 실패: {_e!r}")
     doc.close()
     return img
 
@@ -1076,15 +1149,17 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         year_month: str = "", include_cover: bool = True,
                         b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
+                        p3_items: list = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
     """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
 
-    year_month: "2026.06" 형식. 표지/페이지2에 표시.
+    year_month: '2026.06' 형식. 표지/페이지2에 표시.
     inspection_date: 페이지2 점검일 '2026년 06월 03일' 형식.
     p2_items: 주요 점검사항 1~10 (None이면 기본값).
     p2_results: 점검결과 1~10 (None이면 기본값).
+    p3_items: 붙임 서류 목록 1~11 (None이면 기본값).
     """
     pages = []
     if include_cover:
@@ -1101,11 +1176,9 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
             print(f"[WARN] 페이지2 합성 실패: {_e}")
     if include_p3:
         try:
-            pages.append(render_p3(site_name))
+            pages.append(render_p3(site_name, items=p3_items))
         except Exception as _e:
             print(f"[WARN] 페이지3 합성 실패: {_e}")
-    # v112 — 원본 PDF 페이지 순서: 표지→p2→p3→붙임1→붙임2→붙임3→붙임4→붙임5→붙임6→붙임7→붙임8
-    # 붙임1 (안전진단장비) = p4
     if include_p4 or include_b1:
         try:
             pages.append(render_p4(site_name))  # 붙임1
@@ -1147,11 +1220,10 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         page_num += 1
     if not pages:
         raise ValueError("PDF empty")
-    # v114 — PyMuPDF로 직접 PDF 빌드 (메모리 효율 ↑↑)
-    # 각 페이지를 JPEG로 변환 후 즉시 메모리 해제 → 한 페이지씩만 메모리에
+    # v114 — PyMuPDF로 페이지별 직접 빌드 (메모리 효율)
     import gc, io as _io, fitz as _fitz
     A4_PX = (1654, 2339)
-    pdf_doc = _fitz.open()  # 빈 PDF
+    pdf_doc = _fitz.open()
     for idx in range(len(pages)):
         p = pages[idx]
         rgb = p.convert("RGB")
