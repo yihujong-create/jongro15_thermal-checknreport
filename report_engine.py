@@ -642,16 +642,19 @@ def _draw_mixed(d, x, y, text, size_px, fill="black"):
 
 
 def _render_pdf_page_to_img(pdf_path: str):
-    """PDF 파일의 첫 페이지를 2481x3509 PIL Image로 렌더링."""
+    """PDF 파일의 첫 페이지를 1654x2339 PIL Image로 렌더링 (200 DPI A4).
+    v114 — 메모리 절감을 위해 처음부터 낮은 해상도로 렌더링 (이전 25MB → 11MB).
+    """
     import fitz
     doc = fitz.open(pdf_path)
     page = doc[0]
-    scale_x = 2481 / page.rect.width
-    scale_y = 3509 / page.rect.height
+    # A4 200 DPI = 1654 x 2339 (이전 2481x3509 → 56% 메모리)
+    scale_x = 1654 / page.rect.width
+    scale_y = 2339 / page.rect.height
     pix = page.get_pixmap(matrix=fitz.Matrix(scale_x, scale_y))
     img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples).convert("RGB")
-    if img.size != (2481, 3509):
-        img = img.resize((2481, 3509), Image.LANCZOS)
+    if img.size != (1654, 2339):
+        img = img.resize((1654, 2339), Image.LANCZOS)
     return img, page, doc, scale_x, scale_y
 
 
@@ -1144,20 +1147,27 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         page_num += 1
     if not pages:
         raise ValueError("PDF empty")
-    import gc
+    # v114 — PyMuPDF로 직접 PDF 빌드 (메모리 효율 ↑↑)
+    # 각 페이지를 JPEG로 변환 후 즉시 메모리 해제 → 한 페이지씩만 메모리에
+    import gc, io as _io, fitz as _fitz
     A4_PX = (1654, 2339)
-    first = pages[0].convert("RGB")
-    if first.size != A4_PX:
-        first = first.resize(A4_PX, Image.LANCZOS)
-    append_imgs = []
-    for p in pages[1:]:
+    pdf_doc = _fitz.open()  # 빈 PDF
+    for idx in range(len(pages)):
+        p = pages[idx]
         rgb = p.convert("RGB")
         if rgb.size != A4_PX:
             rgb = rgb.resize(A4_PX, Image.LANCZOS)
-        append_imgs.append(rgb)
+        buf = _io.BytesIO()
+        rgb.save(buf, format="JPEG", quality=80, optimize=True)
+        jpg_bytes = buf.getvalue()
+        del buf, rgb
+        new_page = pdf_doc.new_page(width=595, height=842)
+        new_page.insert_image(_fitz.Rect(0, 0, 595, 842), stream=jpg_bytes)
+        del jpg_bytes
+        pages[idx] = None
+        gc.collect()
     pages.clear()
-    gc.collect()
-    first.save(out_path, "PDF", resolution=200.0, save_all=True, append_images=append_imgs)
-    del first, append_imgs
+    pdf_doc.save(out_path, deflate=True, garbage=4, clean=True)
+    pdf_doc.close()
     gc.collect()
     return out_path
