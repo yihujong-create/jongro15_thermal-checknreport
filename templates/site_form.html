@@ -222,30 +222,6 @@ body{padding-bottom:42px !important;}
 <input type="hidden" name="site_name" value="{{ site_name }}">
 <input type="hidden" name="markers_json" id="markers_json" value="{}">
 <main>
-<!-- v111 — 페이지 미리보기 -->
-<section class="block-section">
-<h2>📄 PDF 페이지 미리보기 (표지 / 페이지 2~4)</h2>
-<p class="hint">아래 4장은 PDF에 포함될 페이지 모습입니다. 폼에서 수정한 점검일·점검사항·점검결과는 PDF 생성 시 페이지 2에 반영됩니다.</p>
-<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:10px 0;">
-  <div style="text-align:center;border:1px solid #ddd;border-radius:6px;padding:8px;background:#fafafa;">
-    <div style="font-weight:600;color:#666;margin-bottom:6px;font-size:13px;">표지 (1P)</div>
-    <img src="/api/preview/{{ site_name }}/cover" alt="표지" style="width:100%;height:auto;border:1px solid #ccc;background:white;" loading="lazy">
-  </div>
-  <div style="text-align:center;border:1px solid #ddd;border-radius:6px;padding:8px;background:#fafafa;">
-    <div style="font-weight:600;color:#666;margin-bottom:6px;font-size:13px;">페이지 2 (2P)</div>
-    <img src="/api/preview/{{ site_name }}/p2" alt="페이지2" style="width:100%;height:auto;border:1px solid #ccc;background:white;" loading="lazy">
-  </div>
-  <div style="text-align:center;border:1px solid #ddd;border-radius:6px;padding:8px;background:#fafafa;">
-    <div style="font-weight:600;color:#666;margin-bottom:6px;font-size:13px;">페이지 3 (3P)</div>
-    <img src="/api/preview/{{ site_name }}/p3" alt="페이지3" style="width:100%;height:auto;border:1px solid #ccc;background:white;" loading="lazy">
-  </div>
-  <div style="text-align:center;border:1px solid #ddd;border-radius:6px;padding:8px;background:#fafafa;">
-    <div style="font-weight:600;color:#666;margin-bottom:6px;font-size:13px;">페이지 4 (4P)</div>
-    <img src="/api/preview/{{ site_name }}/p4" alt="페이지4" style="width:100%;height:auto;border:1px solid #ccc;background:white;" loading="lazy">
-  </div>
-</div>
-</section>
-
 <!-- p1 표지 + p2 점검사항/결과 -->
 <section class="block-section">
 <h2>📘 표지 + 페이지 2 (1~2페이지)</h2>
@@ -1711,4 +1687,18 @@ function loadReport(id) {
     window._flirDecoded = {};
     var loadPhotoCount = Object.keys((res.data && res.data.photos) || {}).length;
     console.log('[load] photos=' + loadPhotoCount);
-    populateFormData(res.data
+    populateFormData(res.data);
+    var nameInp = document.getElementById('report-name');
+    if (nameInp) nameInp.value = res.name || '';
+    currentReportId = res.id;
+    closeLoadDialog();
+    setAutosaveStatus('saved', '✓ 불러옴 (사진 ' + loadPhotoCount + '장 복원 중)');
+    setTimeout(function() {
+      var el = document.getElementById('autosave-status');
+      if (el && el.textContent.indexOf('복원 중') >= 0) setAutosaveStatus('      try { drawMarkers(name); } catch(e) {}
+    });
+  }, 150);
+});
+</script>
+</body>
+</html>
