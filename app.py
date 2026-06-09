@@ -334,15 +334,19 @@ def generate():
         for i in range(1, 11):
             iv = (request.form.get(f"p2_item_{i}", "") or "").strip()
             rv = (request.form.get(f"p2_result_{i}", "") or "").strip()
-            p2_items.append(iv if iv else None)
-            p2_results.append(rv if rv else None)
+            iv_show = bool(request.form.get(f"p2_item_{i}_show"))
+            rv_show = bool(request.form.get(f"p2_result_{i}_show"))
+            # 체크 해제된 항목은 PDF에서 빈칸으로 (공백 문자열 전달)
+            p2_items.append(iv if iv else None) if iv_show else p2_items.append(" ")
+            p2_results.append(rv if rv else None) if rv_show else p2_results.append(" ")
         if not any(p2_items): p2_items = None
         if not any(p2_results): p2_results = None
         # v115 — 페이지3 붙임 서류 목록 1~11
         p3_items = []
         for i in range(1, 12):
             iv = (request.form.get(f"p3_item_{i}", "") or "").strip()
-            p3_items.append(iv if iv else None)
+            iv_show = bool(request.form.get(f"p3_item_{i}_show"))
+            p3_items.append(iv if iv else None) if iv_show else p3_items.append(" ")
         if not any(p3_items): p3_items = None
         # v117 — 붙임2 항목별 점검결과/조치사항
         b2_results = {}
@@ -396,6 +400,9 @@ def generate():
         include_b6    = bool(request.form.get("pdf_include_b6"))
         include_b7    = bool(request.form.get("pdf_include_b7"))
         include_b8    = bool(request.form.get("pdf_include_b8"))
+        include_b9    = bool(request.form.get("pdf_include_b9"))
+        include_b10   = bool(request.form.get("pdf_include_b10"))
+        include_b11   = bool(request.form.get("pdf_include_b11"))
         # 붙임3 입력값 수집
         b3_run = {}
         for k in ["dcv", "dca", "acv", "aca", "kw", "hz", "cum_mwh"]:
@@ -438,6 +445,9 @@ def generate():
             b6_opinion=b6_opinion,
             b5_currents=b5_currents,
             b5_states=b5_states,
+            include_b9=include_b9,
+            include_b10=include_b10,
+            include_b11=include_b11,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )

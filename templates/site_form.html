@@ -202,6 +202,9 @@ body{padding-bottom:42px !important;}
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b6" form="report-form" value="1" checked> 붙임6</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7</label>
   <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b9" form="report-form" value="1"> 붙임9</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b10" form="report-form" value="1"> 붙임10</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b11" form="report-form" value="1"> 붙임11</label>
   <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체</button>
 </div>
 
@@ -244,43 +247,43 @@ body{padding-bottom:42px !important;}
 </div>
 <h3 class="b3-h3">주요 점검사항 (1~10, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label>1<input type="text" name="p2_item_1" form="report-form" placeholder="1. 특고압 전기설비 외관 점검"></label>
-<label>2<input type="text" name="p2_item_2" form="report-form" placeholder="2. 적외선 열화상 진단"></label>
-<label>3<input type="text" name="p2_item_3" form="report-form" placeholder="3. 모듈 외관 점검"></label>
-<label>4<input type="text" name="p2_item_4" form="report-form" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
-<label>5<input type="text" name="p2_item_5" form="report-form" placeholder="5. 인버터 판넬 점검"></label>
-<label>6<input type="text" name="p2_item_6" form="report-form" placeholder="6. 접속반 점검"></label>
-<label>7<input type="text" name="p2_item_7" form="report-form" placeholder="(추가 항목 7)"></label>
-<label>8<input type="text" name="p2_item_8" form="report-form" placeholder="(추가 항목 8)"></label>
-<label>9<input type="text" name="p2_item_9" form="report-form" placeholder="(추가 항목 9)"></label>
-<label>10<input type="text" name="p2_item_10" form="report-form" placeholder="(추가 항목 10)"></label>
+<label><input type="checkbox" name="p2_item_1_show" form="report-form" value="1" checked style="margin-right:4px;">1<input type="text" name="p2_item_1" form="report-form" placeholder="1. 특고압 전기설비 외관 점검"></label>
+<label><input type="checkbox" name="p2_item_2_show" form="report-form" value="1" checked style="margin-right:4px;">2<input type="text" name="p2_item_2" form="report-form" placeholder="2. 적외선 열화상 진단"></label>
+<label><input type="checkbox" name="p2_item_3_show" form="report-form" value="1" checked style="margin-right:4px;">3<input type="text" name="p2_item_3" form="report-form" placeholder="3. 모듈 외관 점검"></label>
+<label><input type="checkbox" name="p2_item_4_show" form="report-form" value="1" checked style="margin-right:4px;">4<input type="text" name="p2_item_4" form="report-form" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
+<label><input type="checkbox" name="p2_item_5_show" form="report-form" value="1" checked style="margin-right:4px;">5<input type="text" name="p2_item_5" form="report-form" placeholder="5. 인버터 판넬 점검"></label>
+<label><input type="checkbox" name="p2_item_6_show" form="report-form" value="1" checked style="margin-right:4px;">6<input type="text" name="p2_item_6" form="report-form" placeholder="6. 접속반 점검"></label>
+<label><input type="checkbox" name="p2_item_7_show" form="report-form" value="1" checked style="margin-right:4px;">7<input type="text" name="p2_item_7" form="report-form" placeholder="(추가 항목 7)"></label>
+<label><input type="checkbox" name="p2_item_8_show" form="report-form" value="1" checked style="margin-right:4px;">8<input type="text" name="p2_item_8" form="report-form" placeholder="(추가 항목 8)"></label>
+<label><input type="checkbox" name="p2_item_9_show" form="report-form" value="1" checked style="margin-right:4px;">9<input type="text" name="p2_item_9" form="report-form" placeholder="(추가 항목 9)"></label>
+<label><input type="checkbox" name="p2_item_10_show" form="report-form" value="1" checked style="margin-right:4px;">10<input type="text" name="p2_item_10" form="report-form" placeholder="(추가 항목 10)"></label>
 </div>
 <h3 class="b3-h3">점검결과 및 종합의견 (1-1~10-1, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label>1-1<input type="text" name="p2_result_1" form="report-form" placeholder="1-1. 외관 이상없음"></label>
-<label>2-1<input type="text" name="p2_result_2" form="report-form" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
-<label>3-1<input type="text" name="p2_result_3" form="report-form" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
-<label>4-1<input type="text" name="p2_result_4" form="report-form" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
-<label>5-1<input type="text" name="p2_result_5" form="report-form" placeholder="5-1. 인버터 판넬 이상 없음"></label>
-<label>6-1<input type="text" name="p2_result_6" form="report-form" placeholder="6-1. 접속반 이상 없음"></label>
-<label>7-1<input type="text" name="p2_result_7" form="report-form" placeholder="(추가 의견 7-1)"></label>
-<label>8-1<input type="text" name="p2_result_8" form="report-form" placeholder="(추가 의견 8-1)"></label>
-<label>9-1<input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
-<label>10-1<input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
+<label><input type="checkbox" name="p2_result_1_show" form="report-form" value="1" checked style="margin-right:4px;">1-1<input type="text" name="p2_result_1" form="report-form" placeholder="1-1. 외관 이상없음"></label>
+<label><input type="checkbox" name="p2_result_2_show" form="report-form" value="1" checked style="margin-right:4px;">2-1<input type="text" name="p2_result_2" form="report-form" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
+<label><input type="checkbox" name="p2_result_3_show" form="report-form" value="1" checked style="margin-right:4px;">3-1<input type="text" name="p2_result_3" form="report-form" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
+<label><input type="checkbox" name="p2_result_4_show" form="report-form" value="1" checked style="margin-right:4px;">4-1<input type="text" name="p2_result_4" form="report-form" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
+<label><input type="checkbox" name="p2_result_5_show" form="report-form" value="1" checked style="margin-right:4px;">5-1<input type="text" name="p2_result_5" form="report-form" placeholder="5-1. 인버터 판넬 이상 없음"></label>
+<label><input type="checkbox" name="p2_result_6_show" form="report-form" value="1" checked style="margin-right:4px;">6-1<input type="text" name="p2_result_6" form="report-form" placeholder="6-1. 접속반 이상 없음"></label>
+<label><input type="checkbox" name="p2_result_7_show" form="report-form" value="1" checked style="margin-right:4px;">7-1<input type="text" name="p2_result_7" form="report-form" placeholder="(추가 의견 7-1)"></label>
+<label><input type="checkbox" name="p2_result_8_show" form="report-form" value="1" checked style="margin-right:4px;">8-1<input type="text" name="p2_result_8" form="report-form" placeholder="(추가 의견 8-1)"></label>
+<label><input type="checkbox" name="p2_result_9_show" form="report-form" value="1" checked style="margin-right:4px;">9-1<input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
+<label><input type="checkbox" name="p2_result_10_show" form="report-form" value="1" checked style="margin-right:4px;">10-1<input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
 </div>
 <h3 class="b3-h3">붙임 서류 목록 (페이지 3, 1~11, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label>1<input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
-<label>2<input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
-<label>3<input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
-<label>4<input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
-<label>5<input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
-<label>6<input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
-<label>7<input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
-<label>8<input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
-<label>9<input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
-<label>10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
-<label>11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
+<label><input type="checkbox" name="p3_item_1_show" form="report-form" value="1" checked style="margin-right:4px;">1<input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
+<label><input type="checkbox" name="p3_item_2_show" form="report-form" value="1" checked style="margin-right:4px;">2<input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_3_show" form="report-form" value="1" checked style="margin-right:4px;">3<input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_4_show" form="report-form" value="1" checked style="margin-right:4px;">4<input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_5_show" form="report-form" value="1" checked style="margin-right:4px;">5<input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_6_show" form="report-form" value="1" checked style="margin-right:4px;">6<input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_7_show" form="report-form" value="1" checked style="margin-right:4px;">7<input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
+<label><input type="checkbox" name="p3_item_8_show" form="report-form" value="1" checked style="margin-right:4px;">8<input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
+<label><input type="checkbox" name="p3_item_9_show" form="report-form" value="1" checked style="margin-right:4px;">9<input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><input type="checkbox" name="p3_item_10_show" form="report-form" value="1" checked style="margin-right:4px;">10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><input type="checkbox" name="p3_item_11_show" form="report-form" value="1" checked style="margin-right:4px;">11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
 </div>
 </div>
 </section>
@@ -443,7 +446,7 @@ body{padding-bottom:42px !important;}
 <tr><td style="border:1px solid #ddd;padding:4px;background:#fafafa;">{{ st }}</td>
 {% for mjb in b5_struct.get('mjbs', []) %}
 <td style="border:1px solid #ddd;padding:2px;"><select name="b5_state_{{ st_idx }}_{{ loop.index0 }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
-  <option value=""></option><option value="O">○</option><option value="X">X</option><option value="/">/</option>
+  <option value="O" selected>○</option><option value="X">X</option><option value="/">/</option>
 </select></td>
 {% endfor %}
 </tr>
@@ -461,19 +464,64 @@ body{padding-bottom:42px !important;}
 <div class="block">
 <div class="block-header"><span class="block-num">붙임6</span><span class="block-title">{{ site_name }}</span></div>
 <div class="b3-section">
-<h3 class="b3-h3">25행 점검결과</h3>
-<div class="b3-grid">
-{% for label in b6_labels %}
-<label style="display:flex;flex-direction:column;gap:2px;font-size:0.85em;">{{ label }}
-  <select name="b6_r_{{ loop.index }}" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option>
-    <option value="O">○ 적합</option>
-    <option value="X">X 부적합</option>
-    <option value="/">/ 해당없음</option>
+<h3 class="b3-h3">25행 점검결과 (PDF 양식 동일 구조)</h3>
+<p class="hint">기본값 = 원본 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;width:40px;">NO</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">항 목</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">소분류</th>
+<th style="border:1px solid #999;padding:6px;">점검 사항</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">점검결과</th>
+</tr></thead>
+<tbody>
+{% set b6_table = [
+  ["1","태양전지","출력","일사량 대비 안정적 출력(월간 발전량 등) 확인"],
+  ["","","외관","변색(황변, 백화, Glass, Back sheet 등), 변형 여부 확인"],
+  ["","","","적외선열화상 측정시 핫스팟 등 열화현상 확인"],
+  ["","","","프레임 부식, 손상(파손) 확인"],
+  ["","","음영","태양전지 어레이 설치장소의 주변으로 인한 음영 발생 확인"],
+  ["","","본딩","태양전지모듈과 지지대의 전기적 접속 상태 이상 여부 확인"],
+  ["2","지지물","기초상태","기초부위, 지지대 등의 결속 및 정착상태 이상여부 확인"],
+  ["","","볼트체결상태","용융아연도금 이상 재질 볼트 너트사용과 녹발생, 볼트체결 상태 등 이상 여부"],
+  ["","","접속함","외함의 부식 및 손상, 접속점 및 부속품 발열 등 확인"],
+  ["","","설치상태","지지물이 충격 등에 대하여 안전한 상태인지 확인"],
+  ["","","도금상태","아연도금 상태, 절단면 또는 용접부분 등 녹 방지 유지 등 확인"],
+  ["","","고정","모듈 간의 직렬배선은 바람에 흔들리지 않도록 고정 확인"],
+  ["3","전선로","전선연결","스트링별 DC케이블 및 간선기준 접속부 발열등 이상여부 확인"],
+  ["","","커넥터","모듈, 출력단자, 파손 등 습기 및 빗물 침투방지 구조 확인"],
+  ["4","전력변환장치 및 보호장치","외관","외함 손상, 도금상태 등 변형 여부 확인"],
+  ["","","작동상태","소음, 진동, 냄새 등과 같이 평소와 다른 현상 발생 확인"],
+  ["","","전선로","배선의 손상, 접속단자(AC, DC) 체결, 관통부분 마감처리 확인"],
+  ["","","설치환경","제조사가 제시한 설치환경(온도, 습도, 청소상태) 준수 여부 확인"],
+  ["","","보호값 설정","저주파수 설정 등 인버터 전체 보호요소 및 계전기 설정치 적정 여부"],
+  ["5","주변환경","부지안전","배수시설 맨홀 및 배수로 정비상태 확인"],
+  ["","","","지지대 또는 지반의 침하가 없으며, 지지대-지반의 고정상태 확인"],
+  ["","","","부지 내 지반 침하, 토사유출 등 현상의 흔적 유무"],
+  ["","","","축대의 균열, 누수 등 자연재해 대비 이상 여부 확인"],
+  ["6","기타","구조물 등","지붕과 기초, 구조물은 헐거움 없이 고정되었는지 확인"],
+  ["","","","별도의 추가 하중 적재 등 위험물 설치 여부 등 확인"]
+] %}
+{% for row in b6_table %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[0] }}</td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[1] }}</td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[2] }}</td>
+<td style="border:1px solid #999;padding:6px;font-size:11px;">{{ row[3] }}</td>
+<td style="border:1px solid #999;padding:2px;">
+  <select name="b6_r_{{ loop.index }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">(유지)</option>
+    <option value="O">○</option>
+    <option value="X">X</option>
+    <option value="/">/</option>
   </select>
-</label>
+</td>
+</tr>
 {% endfor %}
+</tbody></table>
 </div>
+<p style="font-size:11px;color:#666;margin-top:6px;">[비고] 점검결과는 ○(적합), ×(부적합), /(해당없음) 으로 표기</p>
 <h3 class="b3-h3">종합의견</h3>
 <label style="display:block;">종합의견 (페이지 하단)
 <textarea name="b6_opinion" form="report-form" rows="2" placeholder="예: 절연 및 접지저항 측정 - 이상 없음" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;"></textarea>

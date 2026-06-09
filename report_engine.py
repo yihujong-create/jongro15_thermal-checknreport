@@ -917,6 +917,9 @@ def render_static_page(site_name: str, prefix: str) -> "Image.Image":
 
 
 def render_b1(site_name): return render_static_page(site_name, "b1")
+def render_b9(site_name): return render_static_page(site_name, "b9")
+def render_b10(site_name): return render_static_page(site_name, "b10")
+def render_b11(site_name): return render_static_page(site_name, "b11")
 
 
 # v122 — 붙임5 사이트별 구조 (MJB 컬럼 / 채널 / 상태 라벨)
@@ -1484,7 +1487,8 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b6_results: list = None, b6_opinion: str = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
-                        include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
+                        include_b4: bool = True, include_b5: bool = True, include_b6: bool = True,
+                        include_b9: bool = False, include_b10: bool = False, include_b11: bool = False):
     pages = []
     if include_cover:
         try: pages.append(render_cover(site_name, year_month))
@@ -1513,6 +1517,15 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
     if include_b6:
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
         except Exception as _e: print(f"[WARN] b6: {_e}")
+    if include_b9:
+        try: pages.append(render_b9(site_name))
+        except Exception as _e: print(f"[WARN] b9: {_e}")
+    if include_b10:
+        try: pages.append(render_b10(site_name))
+        except Exception as _e: print(f"[WARN] b10: {_e}")
+    if include_b11:
+        try: pages.append(render_b11(site_name))
+        except Exception as _e: print(f"[WARN] b11: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
