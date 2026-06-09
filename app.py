@@ -464,21 +464,16 @@ def generate():
                 field = key[4:]
                 old_v = rec.get(field, "")
                 if old_v and v != old_v: b11_overrides[old_v] = v
-        # v132 — b9/b10 사진 업로드
+        # v135 — b9/b10 사진: _resolve_slot 사용 (multipart + sessionStorage 모두 지원, b8 동일)
         b9_photos = []
         b10_photos = []
         for fname in ["b9_photo"]:
-            f = request.files.get(fname)
-            if f and f.filename:
-                ph = os.path.join(UPLOAD_DIR, secure_filename(f"{site_name}_{fname}_{f.filename}"))
-                f.save(ph); b9_photos.append(ph)
+            p = _resolve_slot(fname)
+            if p: b9_photos.append(p)
         for fname in ["b10_photo_1","b10_photo_2","b10_photo_3"]:
-            f = request.files.get(fname)
-            if f and f.filename:
-                ph = os.path.join(UPLOAD_DIR, secure_filename(f"{site_name}_{fname}_{f.filename}"))
-                f.save(ph); b10_photos.append(ph)
-            else:
-                b10_photos.append(None)
+            p = _resolve_slot(fname)
+            b10_photos.append(p)
+        print(f"[INFO] b9 사진: {len(b9_photos)}장, b10 사진: {sum(1 for x in b10_photos if x)}장")
         # 붙임3 입력값 수집
         b3_run = {}
         for k in ["dcv", "dca", "acv", "aca", "kw", "hz", "cum_mwh"]:
