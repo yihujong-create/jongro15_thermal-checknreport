@@ -26,7 +26,7 @@ from flask import (
     redirect, url_for, jsonify, flash, session, abort,
 )
 from werkzeug.utils import secure_filename
-from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS, B5_STRUCTURE, B5P2_STRUCTURE
+from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS, B5_STRUCTURE, B5P2_STRUCTURE, B9_DATA, B10_DATA, B11_DATA
 try:
     from flir_decode import decode_flir, get_temp_at_pixel, get_temp_in_box, extract_embedded_visible
     _FLIR_OK = True
@@ -149,6 +149,9 @@ def site_form(site_name):
                            b6_labels=B6_ROW_LABELS,
                            b5_struct=B5_STRUCTURE.get(site_name, {}),
                            b5p2_struct=B5P2_STRUCTURE.get(site_name, {}),
+                           b9_data=B9_DATA.get(site_name, []),
+                           b10_data=B10_DATA.get(site_name, []),
+                           b11_data=B11_DATA.get(site_name, {}),
                            today=date.today().isoformat())
 
 
@@ -410,6 +413,57 @@ def generate():
         include_b9    = bool(request.form.get("pdf_include_b9"))
         include_b10   = bool(request.form.get("pdf_include_b10"))
         include_b11   = bool(request.form.get("pdf_include_b11"))
+        # v129 — 붙임9/10/11 override 수집
+        b9_overrides = {}
+        b10_overrides = {}
+        b11_overrides = {}
+        for key, val in request.form.items():
+            v = (val or "").strip()
+            if not v: continue
+            if key.startswith("b9_meas_"):
+                # b9_meas_<index> 형식 — DATA index에 해당하는 row의 meas 값을 교체
+                from report_engine import B9_DATA as _B9
+                site_data = _B9.get(site_name, [])
+                try:
+                    i = int(key[8:])
+                    if 0 <= i < len(site_data):
+                        old_v = site_data[i].get("meas","")
+                        if v != old_v: b9_overrides[old_v] = v
+                except: pass
+            elif key.startswith("b9_result_"):
+                from report_engine import B9_DATA as _B9
+                site_data = _B9.get(site_name, [])
+                try:
+                    i = int(key[10:])
+                    if 0 <= i < len(site_data):
+                        old_v = site_data[i].get("result","")
+                        if v != old_v: b9_overrides[old_v] = v
+                except: pass
+            elif key.startswith("b10_meas_"):
+                from report_engine import B10_DATA as _B10
+                site_data = _B10.get(site_name, [])
+                try:
+                    i = int(key[9:])
+                    if 0 <= i < len(site_data):
+                        old_v = site_data[i].get("meas","")
+                        if v != old_v: b10_overrides[old_v] = v
+                except: pass
+            elif key.startswith("b10_result_"):
+                from report_engine import B10_DATA as _B10
+                site_data = _B10.get(site_name, [])
+                try:
+                    i = int(key[11:])
+                    if 0 <= i < len(site_data):
+                        old_v = site_data[i].get("result","")
+                        if v != old_v: b10_overrides[old_v] = v
+                except: pass
+            elif key.startswith("b11_"):
+                # b11_<field_name> — single record
+                from report_engine import B11_DATA as _B11
+                rec = _B11.get(site_name, {})
+                field = key[4:]
+                old_v = rec.get(field, "")
+                if old_v and v != old_v: b11_overrides[old_v] = v
         # 붙임3 입력값 수집
         b3_run = {}
         for k in ["dcv", "dca", "acv", "aca", "kw", "hz", "cum_mwh"]:
@@ -457,6 +511,9 @@ def generate():
             include_b9=include_b9,
             include_b10=include_b10,
             include_b11=include_b11,
+            b9_overrides=b9_overrides,
+            b10_overrides=b10_overrides,
+            b11_overrides=b11_overrides,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )

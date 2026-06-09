@@ -703,6 +703,128 @@ function syncB6Outer(sel){
 })();
 </script>
 
+{% if b9_data %}
+<!-- 붙임9 — 절연저항 측정기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임9 — 전기설비 절연저항 측정기록표</h2>
+<p class="hint">측정치/결과 편집 가능. 빈 값 = 원본 PDF 값 유지. (PDF 양식 동일 구조)</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임9</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;">점검대상</th>
+<th style="border:1px solid #999;padding:6px;">개방전압 (V)</th>
+<th style="border:1px solid #999;padding:6px;">기준치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">측정치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">결 과</th>
+<th style="border:1px solid #999;padding:6px;">비 고</th>
+</tr></thead>
+<tbody>
+{% for row in b9_data %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.target }}<br><span style="font-size:10px;color:#666;">{{ row.desc }}</span></td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.v }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.std }}</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b9_meas_{{ loop.index0 }}" form="report-form" placeholder="{{ row.meas }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b9_result_{{ loop.index0 }}" form="report-form" placeholder="{{ row.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">&nbsp;</td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">- 접속반 채널별로 측정</p>
+</div>
+</div>
+</section>
+
+<!-- 붙임10 — 접지저항 측정기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임10 — 전기설비 접지저항 측정기록표</h2>
+<p class="hint">측정치/결과 편집 가능. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임10</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;">점검대상</th>
+<th style="border:1px solid #999;padding:6px;">개방전압 (V)</th>
+<th style="border:1px solid #999;padding:6px;">기준치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">측정치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">결 과</th>
+<th style="border:1px solid #999;padding:6px;">비 고</th>
+</tr></thead>
+<tbody>
+{% for row in b10_data %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.target }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.v }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.std }}</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b10_meas_{{ loop.index0 }}" form="report-form" placeholder="{{ row.meas }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b10_result_{{ loop.index0 }}" form="report-form" placeholder="{{ row.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">&nbsp;</td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 붙임11 — 변압기 점검기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임11 — 변압기 점검기록표</h2>
+<p class="hint">기본/측정 항목 편집 가능. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임11</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="2" style="border:1px solid #999;padding:6px;">변압기 기본사항</th>
+<th colspan="2" style="border:1px solid #999;padding:6px;">절연저항 (㏁) 및 결과</th>
+</tr></thead>
+<tbody>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;width:25%;">설치 장소</td>
+<td style="border:1px solid #999;padding:2px;width:25%;"><input type="text" name="b11_place" form="report-form" placeholder="{{ b11_data.place }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:25%;">1차 대지</td>
+<td style="border:1px solid #999;padding:2px;width:25%;"><input type="text" name="b11_ins_1d" form="report-form" placeholder="{{ b11_data.ins_1d }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">상수 / 용량</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_cap" form="report-form" placeholder="{{ b11_data.phase }} {{ b11_data.cap }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">2차 대지</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_2d" form="report-form" placeholder="{{ b11_data.ins_2d }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">1차 전압 (Kv)</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_v_pri" form="report-form" placeholder="{{ b11_data.v_pri }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">1차</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_1" form="report-form" placeholder="{{ b11_data.ins_1 }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">2차 전압 (V)</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_v_sec" form="report-form" placeholder="{{ b11_data.v_sec }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">2차</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_2" form="report-form" placeholder="{{ b11_data.ins_2 }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">제작 회사</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_company" form="report-form" placeholder="{{ b11_data.company }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">외부 점검</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ext_check" form="report-form" placeholder="{{ b11_data.ext_check }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">양부 결과</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_result" form="report-form" placeholder="{{ b11_data.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">비 고</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_note" form="report-form" placeholder="{{ b11_data.note }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">[비고] 1. *표 항목은 필요시에 실시함. 2. 외부 점검란은 ○,×로 표기</p>
+</div>
+</div>
+</section>
+{% endif %}
+
 <section class="block-section">
 <h2>붙임7 — 적외선 열화상분포 측정기록표</h2>
 <p class="hint">총 {{ preset.blocks|length }}개 블록. 열화상 사진을 추가하면 SP/Bx 마커로 자동 입력되며, 직접 입력도 가능합니다.</p>

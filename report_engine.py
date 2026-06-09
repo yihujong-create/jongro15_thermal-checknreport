@@ -917,9 +917,120 @@ def render_static_page(site_name: str, prefix: str) -> "Image.Image":
 
 
 def render_b1(site_name): return render_static_page(site_name, "b1")
-def render_b9(site_name): return render_static_page(site_name, "b9")
-def render_b10(site_name): return render_static_page(site_name, "b10")
-def render_b11(site_name): return render_static_page(site_name, "b11")
+
+
+B9_DATA = {
+    "비축기지": [
+        {"target":"[MJB-1]", "desc":"DC1000V FUSE15A / 1CH~20CH", "v":"DC 799", "std":"1 이상", "meas":"4", "result":"양호", "note":""},
+        {"target":"[MJB-2]", "desc":"DC1000V FUSE15A / 1CH~20CH", "v":"DC 797", "std":"1 이상", "meas":"3", "result":"양호", "note":""},
+        {"target":"[MJB-3]", "desc":"DC1000V FUSE15A / 1CH~20CH", "v":"DC 792", "std":"1 이상", "meas":"4", "result":"양호", "note":""},
+        {"target":"[MJB-4]", "desc":"DC1000V FUSE15A / 1CH~20CH", "v":"DC 792", "std":"1 이상", "meas":"3", "result":"양호", "note":""},
+        {"target":"[MJB-5]", "desc":"DC1000V FUSE15A / 1CH~11CH", "v":"DC 795", "std":"1 이상", "meas":"3", "result":"양호", "note":""},
+        {"target":"[MJB-6]", "desc":"DC1000V FUSE15A / 1CH~12CH", "v":"DC 791", "std":"1 이상", "meas":"3", "result":"양호", "note":""},
+    ],
+    "티튜브": [
+        {"target":"[MJB-1]", "desc":"DC1000V FUSE15A / 1CH~19CH", "v":"DC 789", "std":"1 이상", "meas":"250", "result":"양호", "note":""},
+        {"target":"[MJB-2]", "desc":"DC1000V FUSE15A / 1CH~19CH", "v":"DC 792", "std":"1 이상", "meas":"300", "result":"양호", "note":""},
+        {"target":"[MJB-3]", "desc":"DC1000V FUSE15A / 1CH~18CH", "v":"DC 792", "std":"1 이상", "meas":"300", "result":"양호", "note":""},
+        {"target":"[MJB-4]", "desc":"DC1000V FUSE15A / 1CH~11CH", "v":"DC 792", "std":"1 이상", "meas":"300", "result":"양호", "note":""},
+        {"target":"[MJB-5]", "desc":"DC1000V FUSE15A / 1CH~16CH", "v":"DC 791", "std":"1 이상", "meas":"300", "result":"양호", "note":""},
+        {"target":"[MJB-6]", "desc":"DC1000V FUSE15A / 1CH~15CH", "v":"DC 795", "std":"1 이상", "meas":"250", "result":"양호", "note":""},
+        {"target":"[MJB-7]", "desc":"DC1000V FUSE15A / 1CH~16CH", "v":"DC 790", "std":"1 이상", "meas":"250", "result":"양호", "note":""},
+        {"target":"[MJB-8]", "desc":"DC1000V FUSE15A / 1CH~12CH", "v":"DC 794", "std":"1 이상", "meas":"300", "result":"양호", "note":""},
+    ],
+}
+
+B10_DATA = {
+    "비축기지": [
+        {"target":"[MJB-1]", "v":"DC 789", "std":"10 이하", "meas":"0.08", "result":"양호", "note":""},
+        {"target":"[MJB-2]", "v":"DC 792", "std":"10 이하", "meas":"0.09", "result":"양호", "note":""},
+        {"target":"[MJB-3]", "v":"DC 792", "std":"10 이하", "meas":"0.09", "result":"양호", "note":""},
+        {"target":"[MJB-4]", "v":"DC 792", "std":"10 이하", "meas":"0.09", "result":"양호", "note":""},
+        {"target":"[MJB-5]", "v":"DC 791", "std":"10 이하", "meas":"0.11", "result":"양호", "note":""},
+        {"target":"[MJB-6]", "v":"DC 795", "std":"10 이하", "meas":"0.1",  "result":"양호", "note":""},
+        {"target":"[MJB-7]", "v":"DC 790", "std":"10 이하", "meas":"0.09", "result":"양호", "note":""},
+        {"target":"[MJB-8]", "v":"DC 794", "std":"10 이하", "meas":"0.09", "result":"양호", "note":""},
+        {"target":"인버터",  "v":"AC380/220", "std":"10 이하", "meas":"0.09",  "result":"양호", "note":""},
+        {"target":"TR 중성점","v":"",         "std":"10 이하", "meas":"0.087", "result":"양호", "note":""},
+        {"target":"MOF",     "v":"",          "std":"10 이하", "meas":"0.12",  "result":"양호", "note":""},
+        {"target":"3종접지", "v":"",          "std":"100 이하","meas":"11.8",  "result":"양호", "note":""},
+    ],
+    "티튜브": [
+        {"target":"[MJB-1]", "v":"DC 789", "std":"10 이하", "meas":"0.19", "result":"양호", "note":""},
+        {"target":"[MJB-2]", "v":"DC 792", "std":"10 이하", "meas":"0.21", "result":"양호", "note":""},
+        {"target":"[MJB-3]", "v":"DC 792", "std":"10 이하", "meas":"0.17", "result":"양호", "note":""},
+        {"target":"[MJB-4]", "v":"DC 792", "std":"10 이하", "meas":"0.22", "result":"양호", "note":""},
+        {"target":"[MJB-5]", "v":"DC 791", "std":"10 이하", "meas":"0.16", "result":"양호", "note":""},
+        {"target":"[MJB-6]", "v":"DC 795", "std":"10 이하", "meas":"0.11", "result":"양호", "note":""},
+        {"target":"[MJB-7]", "v":"DC 790", "std":"10 이하", "meas":"0.15", "result":"양호", "note":""},
+        {"target":"[MJB-8]", "v":"DC 794", "std":"10 이하", "meas":"0.17", "result":"양호", "note":""},
+        {"target":"인버터",  "v":"AC380/220", "std":"10 이하", "meas":"1.12", "result":"양호", "note":""},
+        {"target":"TR 중성점","v":"",         "std":"10 이하", "meas":"0.11", "result":"양호", "note":""},
+        {"target":"MOF",     "v":"",          "std":"10 이하", "meas":"3.0",  "result":"양호", "note":""},
+        {"target":"3종접지", "v":"",          "std":"100 이하","meas":"13.3", "result":"양호", "note":""},
+    ],
+}
+
+B11_DATA = {
+    "비축기지": {"place":"옥외","phase":"3 Φ","cap":"1000kVA","v_pri":"22.9","v_sec":"350","company":"㈜효성","ext_check":"O","ins_1d":"4000 이상","ins_2d":"478","ins_1":"4000 이상","ins_2":"4000 이상","result":"양호","note":"내부 점검 이상없음 (산가도 측정은 4년주기로 한다.)"},
+    "티튜브":   {"place":"옥외","phase":"3 Φ","cap":"1000kVA","v_pri":"22.9","v_sec":"350","company":"㈜효성","ext_check":"O","ins_1d":"4000 이상","ins_2d":"1080","ins_1":"4000 이상","ins_2":"4000 이상","result":"양호","note":"내부 점검 이상없음 (산가도 측정은 4년주기로 한다.)"},
+}
+
+
+def _overlay_overrides(img, page, sx, sy, overrides):
+    """PDF span을 찾아 overrides({old_text: new_text})로 교체."""
+    if not overrides: return
+    d = ImageDraw.Draw(img)
+    all_spans = []
+    for blk in page.get_text("dict")["blocks"]:
+        for ln in blk.get("lines", []):
+            for sp in ln.get("spans", []):
+                if sp["text"].strip():
+                    all_spans.append({"text":sp["text"].strip(), "bbox":sp["bbox"], "size":sp["size"]})
+    for old_text, new_text in overrides.items():
+        if not new_text or not str(new_text).strip(): continue
+        new_text = str(new_text).strip()
+        if old_text == new_text: continue
+        for sp in all_spans:
+            if sp["text"] == old_text:
+                bb = sp["bbox"]; pad = 2
+                d.rectangle([bb[0]*sx-pad, bb[1]*sy-pad, bb[2]*sx+pad+40, bb[3]*sy+pad], fill="white")
+                size_px = int(sp["size"] * sy * 0.95)
+                _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, new_text, size_px)
+                break
+
+
+def render_b9(site_name: str, overrides: dict = None) -> "Image.Image":
+    pdf_path = _template_pdf_path("b9", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try: _overlay_overrides(img, page, sx, sy, overrides)
+    except Exception as _e: print(f"[WARN] b9 overlay: {_e!r}")
+    doc.close()
+    return img
+
+
+def render_b10(site_name: str, overrides: dict = None) -> "Image.Image":
+    pdf_path = _template_pdf_path("b10", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try: _overlay_overrides(img, page, sx, sy, overrides)
+    except Exception as _e: print(f"[WARN] b10 overlay: {_e!r}")
+    doc.close()
+    return img
+
+
+def render_b11(site_name: str, overrides: dict = None) -> "Image.Image":
+    pdf_path = _template_pdf_path("b11", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try: _overlay_overrides(img, page, sx, sy, overrides)
+    except Exception as _e: print(f"[WARN] b11 overlay: {_e!r}")
+    doc.close()
+    return img
 
 
 # v125 — 붙임5 페이지2 (비축/티튜브만, MJB-5/MJB-6 등 추가 컬럼)
@@ -1737,6 +1848,7 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b5_currents: dict = None, b5_states: dict = None,
                         b5p2_currents: dict = None, b5p2_states: dict = None,
                         b6_results: list = None, b6_opinion: str = None,
+                        b9_overrides: dict = None, b10_overrides: dict = None, b11_overrides: dict = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True,
@@ -1773,13 +1885,13 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
         except Exception as _e: print(f"[WARN] b6: {_e}")
     if include_b9:
-        try: pages.append(render_b9(site_name))
+        try: pages.append(render_b9(site_name, overrides=b9_overrides))
         except Exception as _e: print(f"[WARN] b9: {_e}")
     if include_b10:
-        try: pages.append(render_b10(site_name))
+        try: pages.append(render_b10(site_name, overrides=b10_overrides))
         except Exception as _e: print(f"[WARN] b10: {_e}")
     if include_b11:
-        try: pages.append(render_b11(site_name))
+        try: pages.append(render_b11(site_name, overrides=b11_overrides))
         except Exception as _e: print(f"[WARN] b11: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
