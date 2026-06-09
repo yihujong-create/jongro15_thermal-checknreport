@@ -1884,13 +1884,13 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
     if include_b6:
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
         except Exception as _e: print(f"[WARN] b6: {_e}")
-    if include_b9:
+    if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
         try: pages.append(render_b9(site_name, overrides=b9_overrides))
         except Exception as _e: print(f"[WARN] b9: {_e}")
-    if include_b10:
+    if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
         try: pages.append(render_b10(site_name, overrides=b10_overrides))
         except Exception as _e: print(f"[WARN] b10: {_e}")
-    if include_b11:
+    if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
         try: pages.append(render_b11(site_name, overrides=b11_overrides))
         except Exception as _e: print(f"[WARN] b11: {_e}")
     page_num = 1
