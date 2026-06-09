@@ -234,7 +234,7 @@ body{padding-bottom:42px !important;}
 <div class="meta-row">
 <label>현장명<input type="text" value="{{ site_name }}" disabled></label>
 <label>점검일<input type="date" id="inspection-date-only" form="report-form"></label>
-<label>점검시 (24h)<select id="inspection-hour" form="report-form" style="width:80px;padding:6px;border:1px solid #ccc;border-radius:4px;">
+<label>점검시 (24h)<select id="inspection-hour" form="report-form" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;height:32px;margin-top:4px;box-sizing:border-box;">
 <option value="">-시-</option>
 <option value="0">0시</option><option value="1">1시</option><option value="2">2시</option><option value="3">3시</option>
 <option value="4">4시</option><option value="5">5시</option><option value="6">6시</option><option value="7">7시</option>
@@ -247,43 +247,43 @@ body{padding-bottom:42px !important;}
 </div>
 <h3 class="b3-h3">주요 점검사항 (1~10, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label><input type="checkbox" name="p2_item_1_show" form="report-form" value="1" checked style="margin-right:4px;">1<input type="text" name="p2_item_1" form="report-form" placeholder="1. 특고압 전기설비 외관 점검"></label>
-<label><input type="checkbox" name="p2_item_2_show" form="report-form" value="1" checked style="margin-right:4px;">2<input type="text" name="p2_item_2" form="report-form" placeholder="2. 적외선 열화상 진단"></label>
-<label><input type="checkbox" name="p2_item_3_show" form="report-form" value="1" checked style="margin-right:4px;">3<input type="text" name="p2_item_3" form="report-form" placeholder="3. 모듈 외관 점검"></label>
-<label><input type="checkbox" name="p2_item_4_show" form="report-form" value="1" checked style="margin-right:4px;">4<input type="text" name="p2_item_4" form="report-form" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
-<label><input type="checkbox" name="p2_item_5_show" form="report-form" value="1" checked style="margin-right:4px;">5<input type="text" name="p2_item_5" form="report-form" placeholder="5. 인버터 판넬 점검"></label>
-<label><input type="checkbox" name="p2_item_6_show" form="report-form" value="1" checked style="margin-right:4px;">6<input type="text" name="p2_item_6" form="report-form" placeholder="6. 접속반 점검"></label>
-<label><input type="checkbox" name="p2_item_7_show" form="report-form" value="1" checked style="margin-right:4px;">7<input type="text" name="p2_item_7" form="report-form" placeholder="(추가 항목 7)"></label>
-<label><input type="checkbox" name="p2_item_8_show" form="report-form" value="1" checked style="margin-right:4px;">8<input type="text" name="p2_item_8" form="report-form" placeholder="(추가 항목 8)"></label>
-<label><input type="checkbox" name="p2_item_9_show" form="report-form" value="1" checked style="margin-right:4px;">9<input type="text" name="p2_item_9" form="report-form" placeholder="(추가 항목 9)"></label>
-<label><input type="checkbox" name="p2_item_10_show" form="report-form" value="1" checked style="margin-right:4px;">10<input type="text" name="p2_item_10" form="report-form" placeholder="(추가 항목 10)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_1_show" form="report-form" value="1" checked>1</span><input type="text" name="p2_item_1" form="report-form" placeholder="1. 특고압 전기설비 외관 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_2_show" form="report-form" value="1" checked>2</span><input type="text" name="p2_item_2" form="report-form" placeholder="2. 적외선 열화상 진단"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_3_show" form="report-form" value="1" checked>3</span><input type="text" name="p2_item_3" form="report-form" placeholder="3. 모듈 외관 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_4_show" form="report-form" value="1" checked>4</span><input type="text" name="p2_item_4" form="report-form" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_5_show" form="report-form" value="1" checked>5</span><input type="text" name="p2_item_5" form="report-form" placeholder="5. 인버터 판넬 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_6_show" form="report-form" value="1" checked>6</span><input type="text" name="p2_item_6" form="report-form" placeholder="6. 접속반 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_7_show" form="report-form" value="1" checked>7</span><input type="text" name="p2_item_7" form="report-form" placeholder="(추가 항목 7)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_8_show" form="report-form" value="1" checked>8</span><input type="text" name="p2_item_8" form="report-form" placeholder="(추가 항목 8)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_9_show" form="report-form" value="1" checked>9</span><input type="text" name="p2_item_9" form="report-form" placeholder="(추가 항목 9)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_10_show" form="report-form" value="1" checked>10</span><input type="text" name="p2_item_10" form="report-form" placeholder="(추가 항목 10)"></label>
 </div>
 <h3 class="b3-h3">점검결과 및 종합의견 (1-1~10-1, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label><input type="checkbox" name="p2_result_1_show" form="report-form" value="1" checked style="margin-right:4px;">1-1<input type="text" name="p2_result_1" form="report-form" placeholder="1-1. 외관 이상없음"></label>
-<label><input type="checkbox" name="p2_result_2_show" form="report-form" value="1" checked style="margin-right:4px;">2-1<input type="text" name="p2_result_2" form="report-form" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
-<label><input type="checkbox" name="p2_result_3_show" form="report-form" value="1" checked style="margin-right:4px;">3-1<input type="text" name="p2_result_3" form="report-form" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
-<label><input type="checkbox" name="p2_result_4_show" form="report-form" value="1" checked style="margin-right:4px;">4-1<input type="text" name="p2_result_4" form="report-form" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
-<label><input type="checkbox" name="p2_result_5_show" form="report-form" value="1" checked style="margin-right:4px;">5-1<input type="text" name="p2_result_5" form="report-form" placeholder="5-1. 인버터 판넬 이상 없음"></label>
-<label><input type="checkbox" name="p2_result_6_show" form="report-form" value="1" checked style="margin-right:4px;">6-1<input type="text" name="p2_result_6" form="report-form" placeholder="6-1. 접속반 이상 없음"></label>
-<label><input type="checkbox" name="p2_result_7_show" form="report-form" value="1" checked style="margin-right:4px;">7-1<input type="text" name="p2_result_7" form="report-form" placeholder="(추가 의견 7-1)"></label>
-<label><input type="checkbox" name="p2_result_8_show" form="report-form" value="1" checked style="margin-right:4px;">8-1<input type="text" name="p2_result_8" form="report-form" placeholder="(추가 의견 8-1)"></label>
-<label><input type="checkbox" name="p2_result_9_show" form="report-form" value="1" checked style="margin-right:4px;">9-1<input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
-<label><input type="checkbox" name="p2_result_10_show" form="report-form" value="1" checked style="margin-right:4px;">10-1<input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_1_show" form="report-form" value="1" checked>1-1</span><input type="text" name="p2_result_1" form="report-form" placeholder="1-1. 외관 이상없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_2_show" form="report-form" value="1" checked>2-1</span><input type="text" name="p2_result_2" form="report-form" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_3_show" form="report-form" value="1" checked>3-1</span><input type="text" name="p2_result_3" form="report-form" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_4_show" form="report-form" value="1" checked>4-1</span><input type="text" name="p2_result_4" form="report-form" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_5_show" form="report-form" value="1" checked>5-1</span><input type="text" name="p2_result_5" form="report-form" placeholder="5-1. 인버터 판넬 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_6_show" form="report-form" value="1" checked>6-1</span><input type="text" name="p2_result_6" form="report-form" placeholder="6-1. 접속반 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_7_show" form="report-form" value="1" checked>7-1</span><input type="text" name="p2_result_7" form="report-form" placeholder="(추가 의견 7-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_8_show" form="report-form" value="1" checked>8-1</span><input type="text" name="p2_result_8" form="report-form" placeholder="(추가 의견 8-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_9_show" form="report-form" value="1" checked>9-1</span><input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_10_show" form="report-form" value="1" checked>10-1</span><input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
 </div>
 <h3 class="b3-h3">붙임 서류 목록 (페이지 3, 1~11, 비워두면 기본값)</h3>
 <div class="b3-grid">
-<label><input type="checkbox" name="p3_item_1_show" form="report-form" value="1" checked style="margin-right:4px;">1<input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
-<label><input type="checkbox" name="p3_item_2_show" form="report-form" value="1" checked style="margin-right:4px;">2<input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_3_show" form="report-form" value="1" checked style="margin-right:4px;">3<input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_4_show" form="report-form" value="1" checked style="margin-right:4px;">4<input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_5_show" form="report-form" value="1" checked style="margin-right:4px;">5<input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_6_show" form="report-form" value="1" checked style="margin-right:4px;">6<input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_7_show" form="report-form" value="1" checked style="margin-right:4px;">7<input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
-<label><input type="checkbox" name="p3_item_8_show" form="report-form" value="1" checked style="margin-right:4px;">8<input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
-<label><input type="checkbox" name="p3_item_9_show" form="report-form" value="1" checked style="margin-right:4px;">9<input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
-<label><input type="checkbox" name="p3_item_10_show" form="report-form" value="1" checked style="margin-right:4px;">10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
-<label><input type="checkbox" name="p3_item_11_show" form="report-form" value="1" checked style="margin-right:4px;">11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_1_show" form="report-form" value="1" checked>1</span><input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_2_show" form="report-form" value="1" checked>2</span><input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_3_show" form="report-form" value="1" checked>3</span><input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_4_show" form="report-form" value="1" checked>4</span><input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_5_show" form="report-form" value="1" checked>5</span><input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_6_show" form="report-form" value="1" checked>6</span><input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_7_show" form="report-form" value="1" checked>7</span><input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_8_show" form="report-form" value="1" checked>8</span><input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_9_show" form="report-form" value="1" checked>9</span><input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_10_show" form="report-form" value="1" checked>10</span><input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_11_show" form="report-form" value="1" checked>11</span><input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
 </div>
 </div>
 </section>
