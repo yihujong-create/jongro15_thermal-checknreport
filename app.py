@@ -26,7 +26,7 @@ from flask import (
     redirect, url_for, jsonify, flash, session, abort,
 )
 from werkzeug.utils import secure_filename
-from report_engine import generate_report_pdf, SITE_PRESETS
+from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS
 try:
     from flir_decode import decode_flir, get_temp_at_pixel, get_temp_in_box, extract_embedded_visible
     _FLIR_OK = True
@@ -145,6 +145,7 @@ def site_form(site_name):
     return render_template("site_form.html",
                            site_name=site_name,
                            preset=preset,
+                           b2_items=B2_ITEMS.get(site_name, []),
                            today=date.today().isoformat())
 
 
@@ -341,6 +342,14 @@ def generate():
             iv = (request.form.get(f"p3_item_{i}", "") or "").strip()
             p3_items.append(iv if iv else None)
         if not any(p3_items): p3_items = None
+        # v117 — 붙임2 항목별 점검결과/조치사항
+        b2_results = {}
+        b2_actions = {}
+        for it in B2_ITEMS.get(site_name, []):
+            rv = (request.form.get(f"b2_result_{it}", "") or "").strip()
+            av = (request.form.get(f"b2_action_{it}", "") or "").strip()
+            if rv: b2_results[it] = rv
+            if av: b2_actions[it] = av
         # 페이지별 포함 여부
         include_cover = bool(request.form.get("pdf_include_cover"))
         include_p2    = bool(request.form.get("pdf_include_p2"))
@@ -388,6 +397,8 @@ def generate():
             p2_items=p2_items,
             p2_results=p2_results,
             p3_items=p3_items,
+            b2_results=b2_results,
+            b2_actions=b2_actions,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )
@@ -672,18 +683,15 @@ def api_draft(site_name):
             "name": row["name"],
             "site_name": row["site_name"],
             "is_draft": True,
-            "created_at": row["created_at"],
+            "data_json": row["data_json"],
             "updated_at": row["updated_at"],
-            "data": json.loads(row["data_json"]),
         }
     })
 
 
-# v111 — PDF preview endpoint
 @app.route("/api/preview/<site>/<prefix>")
 @login_required
 def api_preview(site, prefix):
-    # v113에서 미리보기 섹션 삭제되어 더 이상 호출되지 않음. 안전한 stub.
     return ("preview disabled", 410)
 
 

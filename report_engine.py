@@ -917,10 +917,86 @@ def render_static_page(site_name: str, prefix: str) -> "Image.Image":
 
 
 def render_b1(site_name): return render_static_page(site_name, "b1")
-def render_b2(site_name): return render_static_page(site_name, "b2")
 def render_b4(site_name): return render_static_page(site_name, "b4")
 def render_b5(site_name): return render_static_page(site_name, "b5")
 def render_b6(site_name): return render_static_page(site_name, "b6")
+
+
+# v117 — 붙임2 송 수전설비 점검기록표: 사이트별 점검항목 (PDF에 표시되는 순서)
+B2_ITEMS = {
+    "조달청 청사": ["CT", "MCCB", "SPD", "INVERTER", "전선,케이블", "기타설비"],
+    "비축기지":   ["CH", "LBS", "LA", "MOF(수전용)", "MOF(송전용)", "PF", "PT", "CT",
+                "VCB", "TR", "큐비클", "출입문잠금시설", "계전기", "ACB", "INVERTER",
+                "CONDENSER", "축전지", "MCCB", "전선,케이블", "정류기반", "기타시설"],
+    "티튜브":     ["CH", "LBS", "LA", "MOF(수전용)", "MOF(송전용)", "PF", "PT", "CT",
+                "VCB", "TR", "큐비클", "출입문잠금시설", "계전기", "ACB", "INVERTER",
+                "CONDENSER", "축전지", "MCCB", "전선,케이블", "정류기반", "기타시설"],
+}
+
+
+def render_b2(site_name: str, results: dict = None, actions: dict = None) -> "Image.Image":
+    """붙임2 — 송수전설비 점검기록표. 항목별 점검결과(○/X) 및 조치사항 편집.
+    results: {"CT": "X", ...} — ○를 X로 변경할 항목.
+    actions: {"CT": "단자체크", ...} — 조치사항 칸에 추가할 텍스트.
+    """
+    pdf_path = _template_pdf_path("b2", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try:
+        d = ImageDraw.Draw(img)
+        items = B2_ITEMS.get(site_name, [])
+        # 모든 span 수집 → 항목명 span의 y좌표를 행 기준점으로 사용
+        all_spans = []
+        for blk in page.get_text("dict")["blocks"]:
+            for ln in blk.get("lines", []):
+                for sp in ln.get("spans", []):
+                    if sp["text"].strip():
+                        all_spans.append({
+                            "text": sp["text"].strip(),
+                            "bbox": sp["bbox"],
+                            "size": sp["size"],
+                        })
+        # 항목별 행 y좌표 찾기
+        row_y_by_item = {}
+        for it in items:
+            for sp in all_spans:
+                if sp["text"] == it:
+                    row_y_by_item[it] = (sp["bbox"][1] + sp["bbox"][3]) / 2
+                    break
+        # 점검결과(○) 위치 = 같은 행에서 x가 240~260 영역
+        # 조치사항 위치 = 같은 행에서 x가 395 이후
+        results = results or {}
+        actions = actions or {}
+        for it, ycen in row_y_by_item.items():
+            new_result = (results.get(it) or "").strip()
+            new_action = (actions.get(it) or "").strip()
+            if not new_result and not new_action:
+                continue
+            # 1) 점검결과 ○ → X 변경
+            if new_result and new_result in ("X", "x"):
+                for sp in all_spans:
+                    if sp["text"] == "○":
+                        sy_c = (sp["bbox"][1] + sp["bbox"][3]) / 2
+                        if abs(sy_c - ycen) < 6 and 235 < sp["bbox"][0] < 270:
+                            bb = sp["bbox"]
+                            d.rectangle([bb[0]*sx-2, bb[1]*sy-2,
+                                         bb[2]*sx+2, bb[3]*sy+2], fill="white")
+                            size_px = int(sp["size"] * sy * 0.95)
+                            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, "X", size_px)
+                            break
+            # 2) 조치사항 텍스트 추가 (조치사항 컬럼 x=395)
+            if new_action:
+                size_pt = 10.0
+                size_px = int(size_pt * sy * 0.95)
+                ax = 395 * sx
+                ay = (ycen - size_pt/2 - 2) * sy
+                # 기존 빈 영역 위에 그리되, 기존 "세부점검사항은..." 같은 텍스트와 겹치면 그 옆에 덧붙임
+                _draw_mixed(d, ax, ay, new_action, size_px)
+    except Exception as _e:
+        print(f"[WARN] render_b2 편집 적용 실패: {_e!r}")
+    doc.close()
+    return img
 
 
 
@@ -1150,17 +1226,11 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b3_run: dict = None, b3_chk: dict = None, include_b3: bool = False,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
                         p3_items: list = None,
+                        b2_results: dict = None, b2_actions: dict = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
-    """블록 + 사진 정보로 PDF 생성하여 out_path에 저장.
-
-    year_month: '2026.06' 형식. 표지/페이지2에 표시.
-    inspection_date: 페이지2 점검일 '2026년 06월 03일' 형식.
-    p2_items: 주요 점검사항 1~10 (None이면 기본값).
-    p2_results: 점검결과 1~10 (None이면 기본값).
-    p3_items: 붙임 서류 목록 1~11 (None이면 기본값).
-    """
+    """블록 + 사진 정보로 PDF 생성하여 out_path에 저장."""
     pages = []
     if include_cover:
         try:
@@ -1181,12 +1251,12 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
             print(f"[WARN] 페이지3 합성 실패: {_e}")
     if include_p4 or include_b1:
         try:
-            pages.append(render_p4(site_name))  # 붙임1
+            pages.append(render_p4(site_name))
         except Exception as _e:
             print(f"[WARN] 붙임1 합성 실패: {_e}")
     if include_b2:
         try:
-            pages.append(render_b2(site_name))
+            pages.append(render_b2(site_name, results=b2_results, actions=b2_actions))
         except Exception as _e:
             print(f"[WARN] 붙임2 합성 실패: {_e}")
     if include_b3:
@@ -1220,7 +1290,6 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         page_num += 1
     if not pages:
         raise ValueError("PDF empty")
-    # v114 — PyMuPDF로 페이지별 직접 빌드 (메모리 효율)
     import gc, io as _io, fitz as _fitz
     A4_PX = (1654, 2339)
     pdf_doc = _fitz.open()

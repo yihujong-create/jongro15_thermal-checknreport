@@ -282,6 +282,20 @@ body{padding-bottom:42px !important;}
 <label>10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
 <label>11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
 </div>
+<h3 class="b3-h3">붙임2 — 송 수전설비 점검기록표 (항목별 점검결과/조치사항)</h3>
+<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">점검결과 기본 ○. X 선택 시 PDF 반영. 조치사항 비워두면 빈칸.</p>
+<div class="b3-grid">
+{% for item in b2_items %}
+<label style="display:flex;flex-direction:column;gap:2px;">{{ item }}
+  <span style="display:flex;gap:4px;">
+    <select name="b2_result_{{ item }}" form="report-form" style="width:56px;padding:4px;border:1px solid #ccc;border-radius:4px;">
+      <option value="">○</option><option value="X">X</option>
+    </select>
+    <input type="text" name="b2_action_{{ item }}" form="report-form" placeholder="조치사항" style="flex:1;">
+  </span>
+</label>
+{% endfor %}
+</div>
 </div>
 </section>
 
@@ -1661,18 +1675,4 @@ function openLoadDialog() {
       nm.className = 'l-name';
       nm.textContent = rep.name;
       div.appendChild(nm);
-      var meta = document.createElement('div');
-      meta.className = 'l-meta';
-      meta.textContent = (rep.updated_at || '').replace('T',' ').substring(0,16);
-      div.appendChild(meta);
-      var del = document.createElement('button');
-      del.type = 'button';
-      del.className = 'l-del';
-      del.textContent = '삭제';
-      del.onclick = function(ev) { ev.stopPropagation(); deleteReport(rep.id, rep.name); };
-      div.appendChild(del);
-      div.onclick = function() { loadReport(rep.id); };
-      list.appendChild(div);
-    });
-  }).catch(function(e) {
-    list.innerHTML = '<div cl
+      var meta = document.createElement('
