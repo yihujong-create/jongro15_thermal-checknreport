@@ -26,7 +26,7 @@ from flask import (
     redirect, url_for, jsonify, flash, session, abort,
 )
 from werkzeug.utils import secure_filename
-from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS
+from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS, B5_STRUCTURE
 try:
     from flir_decode import decode_flir, get_temp_at_pixel, get_temp_in_box, extract_embedded_visible
     _FLIR_OK = True
@@ -147,6 +147,7 @@ def site_form(site_name):
                            preset=preset,
                            b2_items=B2_ITEMS.get(site_name, []),
                            b6_labels=B6_ROW_LABELS,
+                           b5_struct=B5_STRUCTURE.get(site_name, {}),
                            today=date.today().isoformat())
 
 
@@ -371,6 +372,16 @@ def generate():
             b6_results.append(v if v else None)
         if not any(b6_results): b6_results = None
         b6_opinion = (request.form.get("b6_opinion", "") or "").strip() or None
+        # v122 — 붙임5 전류/상태
+        b5_currents = {}
+        b5_states = {}
+        for key, val in request.form.items():
+            v = (val or "").strip()
+            if not v: continue
+            if key.startswith("b5_curr_"):
+                b5_currents[key[8:]] = v
+            elif key.startswith("b5_state_"):
+                b5_states[key[9:]] = v
         # 페이지별 포함 여부
         include_cover = bool(request.form.get("pdf_include_cover"))
         include_p2    = bool(request.form.get("pdf_include_p2"))
@@ -425,6 +436,8 @@ def generate():
             b4_results=b4_results,
             b6_results=b6_results,
             b6_opinion=b6_opinion,
+            b5_currents=b5_currents,
+            b5_states=b5_states,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )
@@ -707,7 +720,21 @@ def api_draft(site_name):
 @app.route("/api/preview/<site>/<prefix>")
 @login_required
 def api_preview(site, prefix):
-    return ("preview disabled", 410)
+    """v122 — 붙임1 PNG 미리보기 (다른 prefix는 차단)."""
+    if prefix != "b1": return ("preview disabled", 410)
+    try:
+        from report_engine import _template_pdf_path
+        import fitz, io as _io
+        pdf_path = _template_pdf_path("b1", site)
+        if not os.path.exists(pdf_path):
+            return ("not found", 404)
+        doc = fitz.open(pdf_path)
+        pix = doc[0].get_pixmap(matrix=fitz.Matrix(150/72, 150/72))
+        png_bytes = pix.tobytes("png")
+        doc.close()
+        return send_file(_io.BytesIO(png_bytes), mimetype="image/png")
+    except Exception as e:
+        return (f"error: {e}", 500)
 
 
 if __name__ == "__main__":

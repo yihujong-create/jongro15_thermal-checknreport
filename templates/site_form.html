@@ -282,8 +282,29 @@ body{padding-bottom:42px !important;}
 <label>10<input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
 <label>11<input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
 </div>
-<h3 class="b3-h3">붙임2 — 송 수전설비 점검기록표 (항목별 점검결과/조치사항)</h3>
-<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">점검결과 기본 ○. X 선택 시 PDF 반영. 조치사항 비워두면 빈칸.</p>
+</div>
+</section>
+
+<!-- 붙임1 (보기 전용) -->
+<section class="block-section">
+<h2>📎 붙임1 — 안전진단장비 (보기 전용)</h2>
+<p class="hint">PDF 원본 그대로 출력됨. 수정 불가.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임1</span><span class="block-title">안전진단장비</span></div>
+<div class="b3-section" style="text-align:center;">
+<img src="{{ url_for('api_preview', site=site_name, prefix='b1') }}" alt="붙임1 미리보기" style="max-width:100%;border:1px solid #ddd;border-radius:4px;">
+</div>
+</div>
+</section>
+
+<!-- 붙임2 (편집) -->
+<section class="block-section">
+<h2>📑 붙임2 — 송 수전설비 점검기록표</h2>
+<p class="hint">점검결과 기본 ○. X 선택 시 PDF 반영. 조치사항 비워두면 빈칸.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임2</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">항목별 점검결과 / 조치사항</h3>
 <div class="b3-grid">
 {% for item in b2_items %}
 <label style="display:flex;flex-direction:column;gap:2px;">{{ item }}
@@ -296,8 +317,50 @@ body{padding-bottom:42px !important;}
 </label>
 {% endfor %}
 </div>
-<h3 class="b3-h3">붙임4 — ACB/MCCB-PANEL 점검기록표 (전압/전류/판정)</h3>
-<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">비워두면 원본 값 유지. 입력 시 PDF에 새 값으로 교체.</p>
+</div>
+</div>
+</section>
+
+<!-- 붙임4 (편집) -->
+<section class="block-section">
+<h2>붙임3 — 인버터 점검기록표</h2>
+<p class="hint">기본사항은 사이트 PRESET 고정. 운전상황과 점검결과만 입력하세요.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임3</span><span class="block-title">인버터 (INV-1)</span></div>
+<div class="b3-section">
+  <h3 class="b3-h3">운전상황</h3>
+  <div class="b3-grid">
+    <label>DCV (V)<input type="text" name="b3_dcv" placeholder="예: 667.27"></label>
+    <label>DCA (A)<input type="text" name="b3_dca" placeholder="예: 69.91"></label>
+    <label>ACV (V)<input type="text" name="b3_acv" placeholder="예: 399.38"></label>
+    <label>ACA (A)<input type="text" name="b3_aca" placeholder="예: 66.54"></label>
+    <label>KW<input type="text" name="b3_kw" placeholder="예: 47"></label>
+    <label>HZ<input type="text" name="b3_hz" placeholder="예: 59.96"></label>
+    <label>누적발전량 (MWh)<input type="text" name="b3_cum_mwh" placeholder="예: 862.698"></label>
+  </div>
+  <h3 class="b3-h3">점검결과</h3>
+  <div class="b3-grid b3-grid-chk">
+    <label>과열 유무<input type="text" name="b3_chk_overheat" value="양호"></label>
+    <label>접지선 접속<input type="text" name="b3_chk_ground" value="양호"></label>
+    <label>입출력 전압적정<input type="text" name="b3_chk_voltage" value="양호"></label>
+    <label>출력 과전류 유무<input type="text" name="b3_chk_overcurrent" value="양호"></label>
+    <label>FAN 동작상태<input type="text" name="b3_chk_fan" value="양호"></label>
+    <label>SPD 상태<input type="text" name="b3_chk_spd" value="양호"></label>
+    <label>필터 상태<input type="text" name="b3_chk_filter" value="양호"></label>
+    <label>내부청결상태<input type="text" name="b3_chk_clean" value="양호"></label>
+  </div>
+</div>
+</div>
+</section>
+
+
+<section class="block-section">
+<h2>📑 붙임4 — ACB/MCCB-PANEL 점검기록표</h2>
+<p class="hint">비워두면 원본 값 유지. 입력 시 PDF에 새 값으로 교체.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임4</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">전압 / 전류</h3>
 <div class="b3-grid">
 <label>전압 R-S<input type="text" name="b4_v_rs" form="report-form" placeholder="예: 397.5V"></label>
 <label>전압 S-T<input type="text" name="b4_v_st" form="report-form" placeholder="예: 399.38V"></label>
@@ -306,6 +369,7 @@ body{padding-bottom:42px !important;}
 <label>전류 S<input type="text" name="b4_a_s" form="report-form" placeholder="예: 67.86A"></label>
 <label>전류 T<input type="text" name="b4_a_t" form="report-form" placeholder="예: 68.36A"></label>
 </div>
+<h3 class="b3-h3">점검결과 · 판정</h3>
 <div class="b3-grid">
 <label>과열 유무
   <select name="b4_r_overheat" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
@@ -340,8 +404,64 @@ body{padding-bottom:42px !important;}
     <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
   </select></label>
 </div>
-<h3 class="b3-h3">붙임6 — 태양광발전설비 점검기록표 (25행 점검결과 + 종합의견)</h3>
-<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">기본값 = 원본 PDF 값 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+</div>
+</div>
+</section>
+
+<!-- 붙임5 (편집) -->
+<section class="block-section">
+<h2>📑 붙임5 — 접속반 및 모듈 점검기록표</h2>
+<p class="hint">접속반(MJB)별 채널 전류값(A) 및 상태점검(○/X//) 셀 단위 편집. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임5</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">접속반별 전류측정 (A)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;">CH</th>
+{% for mjb in b5_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for ch in b5_struct.get('channels', []) %}
+<tr><td style="border:1px solid #ddd;padding:4px;text-align:center;background:#fafafa;">{{ ch }}</td>
+{% for mjb in b5_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><input type="text" name="b5_curr_{{ ch }}_{{ loop.index0 }}" form="report-form" placeholder="A" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<h3 class="b3-h3">접속반별 상태점검 (○/X//)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;text-align:left;">상태</th>
+{% for mjb in b5_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for st in b5_struct.get('states', []) %}
+{% set st_idx = loop.index0 %}
+<tr><td style="border:1px solid #ddd;padding:4px;background:#fafafa;">{{ st }}</td>
+{% for mjb in b5_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><select name="b5_state_{{ st_idx }}_{{ loop.index0 }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+  <option value=""></option><option value="O">○</option><option value="X">X</option><option value="/">/</option>
+</select></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+</div>
+</div>
+</section>
+
+<!-- 붙임6 (편집) -->
+<section class="block-section">
+<h2>📑 붙임6 — 태양광발전설비 점검기록표</h2>
+<p class="hint">기본값 = 원본 PDF 값 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임6</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">25행 점검결과</h3>
 <div class="b3-grid">
 {% for label in b6_labels %}
 <label style="display:flex;flex-direction:column;gap:2px;font-size:0.85em;">{{ label }}
@@ -354,9 +474,11 @@ body{padding-bottom:42px !important;}
 </label>
 {% endfor %}
 </div>
-<label style="display:block;margin-top:8px;">종합의견 (페이지 하단)
+<h3 class="b3-h3">종합의견</h3>
+<label style="display:block;">종합의견 (페이지 하단)
 <textarea name="b6_opinion" form="report-form" rows="2" placeholder="예: 절연 및 접지저항 측정 - 이상 없음" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;"></textarea>
 </label>
+</div>
 </div>
 </section>
 
@@ -395,37 +517,6 @@ body{padding-bottom:42px !important;}
   });
 })();
 </script>
-
-<section class="block-section">
-<h2>붙임3 — 인버터 점검기록표</h2>
-<p class="hint">기본사항은 사이트 PRESET 고정. 운전상황과 점검결과만 입력하세요.</p>
-<div class="block">
-<div class="block-header"><span class="block-num">붙임3</span><span class="block-title">인버터 (INV-1)</span></div>
-<div class="b3-section">
-  <h3 class="b3-h3">운전상황</h3>
-  <div class="b3-grid">
-    <label>DCV (V)<input type="text" name="b3_dcv" placeholder="예: 667.27"></label>
-    <label>DCA (A)<input type="text" name="b3_dca" placeholder="예: 69.91"></label>
-    <label>ACV (V)<input type="text" name="b3_acv" placeholder="예: 399.38"></label>
-    <label>ACA (A)<input type="text" name="b3_aca" placeholder="예: 66.54"></label>
-    <label>KW<input type="text" name="b3_kw" placeholder="예: 47"></label>
-    <label>HZ<input type="text" name="b3_hz" placeholder="예: 59.96"></label>
-    <label>누적발전량 (MWh)<input type="text" name="b3_cum_mwh" placeholder="예: 862.698"></label>
-  </div>
-  <h3 class="b3-h3">점검결과</h3>
-  <div class="b3-grid b3-grid-chk">
-    <label>과열 유무<input type="text" name="b3_chk_overheat" value="양호"></label>
-    <label>접지선 접속<input type="text" name="b3_chk_ground" value="양호"></label>
-    <label>입출력 전압적정<input type="text" name="b3_chk_voltage" value="양호"></label>
-    <label>출력 과전류 유무<input type="text" name="b3_chk_overcurrent" value="양호"></label>
-    <label>FAN 동작상태<input type="text" name="b3_chk_fan" value="양호"></label>
-    <label>SPD 상태<input type="text" name="b3_chk_spd" value="양호"></label>
-    <label>필터 상태<input type="text" name="b3_chk_filter" value="양호"></label>
-    <label>내부청결상태<input type="text" name="b3_chk_clean" value="양호"></label>
-  </div>
-</div>
-</div>
-</section>
 
 <section class="block-section">
 <h2>붙임7 — 적외선 열화상분포 측정기록표</h2>
@@ -1648,22 +1739,13 @@ function populateFormData(data) {
     });
   }
   // v91 — data.markers는 _afterPhotoReady에서 슬롯별로 병합 처리됨
-  // 여기서는 offset만 처리 + 안전망 차원으로 setTimeout 후 모든 슬롯 drawMarkers 한 번 더
   if (data.markers || data.offsets) {
     setTimeout(function() {
-      // 안전망: 모든 슬롯에 drawMarkers 한 번 더 (img 늦게 로드된 경우 대비)
       if (data.markers) {
-        Object.keys(data.markers).forEach(function(n) {
-          try { showControls(n); } catch (e) {}
-          try { drawMarkers(n); } catch (e) {}
-        });
+        Object.keys(data.markers).forEach(function(n){ try{ showControls(n); }catch(e){} try{ drawMarkers(n); }catch(e){} });
       }
-      // offset
       if (data.offsets) {
-        Object.keys(data.offsets).forEach(function(n) {
-          var inp = document.querySelector('input[data-offset="' + n + '"]');
-          if (inp) inp.value = data.offsets[n];
-        });
+        Object.keys(data.offsets).forEach(function(n){ var inp=document.querySelector('input[data-offset="'+n+'"]'); if (inp) inp.value = data.offsets[n]; });
       }
     }, 100);
   }
@@ -1674,12 +1756,10 @@ function saveReport() {
   if (!name || !name.trim()) { alert('보고서 이름을 입력하세요.'); return; }
   var data = collectFormData();
   var fd = new FormData();
-  fd.append('name', name);
-  fd.append('site_name', SITE_NAME);
-  fd.append('data_json', JSON.stringify(data));
-  fd.append('is_draft', '0');
+  fd.append('name', name); fd.append('site_name', SITE_NAME);
+  fd.append('data_json', JSON.stringify(data)); fd.append('is_draft', '0');
   fetch('/api/save', { method:'POST', body: fd }).then(function(r){return r.json();}).then(function(res){
-    if (res && res.id) { alert('저장 완료'); } else { alert('저장 실패: ' + (res && res.error || 'unknown')); }
+    if (res && res.id) alert('저장 완료'); else alert('저장 실패: ' + (res && res.error || 'unknown'));
   }).catch(function(e){ alert('저장 오류: ' + e); });
 }
 
@@ -1690,34 +1770,32 @@ function closeLoadDialog() { var dlg = document.getElementById('load-dialog'); i
 function loadReports() {
   var list = document.getElementById('load-list'); if (!list) return;
   list.innerHTML = '<div class="load-empty">로딩 중...</div>';
-  fetch('/api/list?site_name=' + encodeURIComponent(SITE_NAME)).then(function(r){return r.json();}).then(function(res){
-    list.innerHTML = '';
-    var reports = (res && res.reports) || [];
+  fetch('/api/list?site_name='+encodeURIComponent(SITE_NAME)).then(function(r){return r.json();}).then(function(res){
+    list.innerHTML = ''; var reports = (res && res.reports) || [];
     if (reports.length === 0) { list.innerHTML = '<div class="load-empty">저장된 보고서가 없습니다.</div>'; return; }
     reports.forEach(function(rep){
-      var div = document.createElement('div'); div.className = 'l-item';
-      var nm = document.createElement('span'); nm.className = 'l-name'; nm.textContent = rep.name;
+      var div = document.createElement('div'); div.className='l-item';
+      var nm = document.createElement('span'); nm.className='l-name'; nm.textContent=rep.name;
       div.appendChild(nm);
       var del = document.createElement('button'); del.type='button'; del.className='l-del'; del.textContent='삭제';
-      del.onclick = function(ev){ ev.stopPropagation(); if (confirm('삭제할까요?')) deleteReport(rep.id); };
-      div.appendChild(del);
-      div.onclick = function(){ loadReport(rep.id); };
+      del.onclick = function(ev){ ev.stopPropagation(); if(confirm('삭제?')) deleteReport(rep.id); };
+      div.appendChild(del); div.onclick = function(){ loadReport(rep.id); };
       list.appendChild(div);
     });
-  }).catch(function(e){ list.innerHTML = '<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
+  }).catch(function(e){ list.innerHTML='<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
 }
 
 function loadReport(reportId) {
-  fetch('/api/load/' + reportId).then(function(r){return r.json();}).then(function(res){
+  fetch('/api/load/'+reportId).then(function(r){return r.json();}).then(function(res){
     if (res && res.data_json) {
-      try { var data = (typeof res.data_json === 'string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
-      catch(e){ alert('불러오기 실패: ' + e); }
+      try { var data = (typeof res.data_json==='string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
+      catch(e){ alert('불러오기 실패: '+e); }
     } else { alert('불러오기 실패'); }
-  }).catch(function(e){ alert('불러오기 오류: ' + e); });
+  }).catch(function(e){ alert('불러오기 오류: '+e); });
 }
 
 function deleteReport(reportId) {
-  fetch('/api/delete/' + reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
+  fetch('/api/delete/'+reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
 }
 </script>
 </body>

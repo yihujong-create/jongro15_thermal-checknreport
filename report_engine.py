@@ -917,7 +917,133 @@ def render_static_page(site_name: str, prefix: str) -> "Image.Image":
 
 
 def render_b1(site_name): return render_static_page(site_name, "b1")
-def render_b5(site_name): return render_static_page(site_name, "b5")
+
+
+# v122 — 붙임5 사이트별 구조 (MJB 컬럼 / 채널 / 상태 라벨)
+B5_STRUCTURE = {
+    "조달청 청사": {
+        "mjbs": ["MJB-1A", "MJB-1B"],
+        "channels": ["1", "2", "3", "4", "5", "6"],
+        "states": ["과열 유무", "SPD상태", "FUSE단선유무", "외함접지", "볼트풀림유무",
+                   "모듈접지선접속상태", "모듈파손유무(육안)", "통신모듈 상태"],
+    },
+    "비축기지": {
+        "mjbs": ["MJB-1", "MJB-2", "MJB-3", "MJB-4"],
+        "channels": [str(i) for i in range(1, 21)],
+        "states": ["과열 유무", "자동소화장치 상태", "SPD상태", "FUSE단선유무", "외함접지",
+                   "볼트풀림유무", "모듈접지선접속상태", "모듈파손유무(육안)", "통신모듈 상태"],
+    },
+    "티튜브": {
+        "mjbs": ["MJB-1", "MJB-2", "MJB-3", "MJB-4"],
+        "channels": [str(i) for i in range(1, 20)],
+        "states": ["과열 유무", "자동소화장치 상태", "SPD상태", "FUSE단선유무", "외함접지",
+                   "볼트풀림유무", "모듈접지선접속상태", "모듈파손유무(육안)", "통신모듈 상태"],
+    },
+}
+
+
+def render_b5(site_name: str, currents: dict = None, states: dict = None) -> "Image.Image":
+    """붙임5 — 접속반별 전류측정/상태점검. 셀 단위 편집.
+    currents: {"<ch>_<mjb_idx>": "X.XX A"} — 채널×MJB 행렬
+    states:   {"<state_idx>_<mjb_idx>": "O" | "X" | "/"}
+    """
+    pdf_path = _template_pdf_path("b5", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try:
+        d = ImageDraw.Draw(img)
+        struct = B5_STRUCTURE.get(site_name)
+        if not struct: doc.close(); return img
+        # 모든 span 수집
+        all_spans = []
+        for blk in page.get_text("dict")["blocks"]:
+            for ln in blk.get("lines", []):
+                for sp in ln.get("spans", []):
+                    if sp["text"].strip():
+                        all_spans.append({
+                            "text": sp["text"].strip(),
+                            "x0": sp["bbox"][0], "x1": sp["bbox"][2],
+                            "y0": sp["bbox"][1], "y1": sp["bbox"][3],
+                            "yc": (sp["bbox"][1]+sp["bbox"][3])/2,
+                            "xc": (sp["bbox"][0]+sp["bbox"][2])/2,
+                            "size": sp["size"], "bbox": sp["bbox"],
+                        })
+        # MJB 컬럼 xc
+        import re as _re
+        mjb_spans = [s for s in all_spans if s["text"] in struct["mjbs"]]
+        mjb_spans.sort(key=lambda x: x["x0"])
+        mjb_xcs = [m["xc"] for m in mjb_spans]
+        # 채널 행 (좌측 1~2자리 숫자)
+        ch_x_max = mjb_spans[0]["x0"] - 20 if mjb_spans else 150
+        ch_spans = [s for s in all_spans
+                    if s["text"] in struct["channels"] and s["x0"] < ch_x_max and s["y0"] > 100]
+        ch_spans.sort(key=lambda x: x["y0"])
+        ch_y_map = {s["text"]: s["yc"] for s in ch_spans}
+        # 전류 값 (X.XX A 또는 XA)
+        curr_spans = [s for s in all_spans
+                      if _re.match(r'^\d+(\.\d+)?\s*A$', s["text"]) and s["x0"] > 150]
+        def find_curr(ch_str, mjb_idx):
+            yc_target = ch_y_map.get(ch_str)
+            if yc_target is None or mjb_idx >= len(mjb_xcs): return None
+            mxc = mjb_xcs[mjb_idx]
+            best, best_d = None, 999
+            for cs in curr_spans:
+                if abs(cs["yc"] - yc_target) < 6:
+                    dx = abs(cs["xc"] - mxc)
+                    if dx < best_d: best_d, best = dx, cs
+            return best
+        currents = currents or {}
+        for key, new_v in currents.items():
+            if not new_v or not str(new_v).strip(): continue
+            try: ch_str, mjb_str = key.split("_")
+            except: continue
+            try: mjb_idx = int(mjb_str)
+            except: continue
+            sp = find_curr(ch_str, mjb_idx)
+            if not sp: continue
+            bb = sp["bbox"]
+            pad = 2
+            d.rectangle([bb[0]*sx-pad, bb[1]*sy-pad, bb[2]*sx+pad, bb[3]*sy+pad], fill="white")
+            size_px = int(sp["size"] * sy * 0.95)
+            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, str(new_v).strip(), size_px)
+        # 상태 ○ 매트릭스
+        state_y_map = {}
+        for st_label in struct["states"]:
+            for s in all_spans:
+                if s["text"] == st_label and s["x0"] < 150:
+                    state_y_map[st_label] = s["yc"]; break
+        circle_spans = [s for s in all_spans if s["text"] in ("○","O","X","/") and s["x0"] > 150]
+        def find_state(state_label, mjb_idx):
+            yc_target = state_y_map.get(state_label)
+            if yc_target is None or mjb_idx >= len(mjb_xcs): return None
+            mxc = mjb_xcs[mjb_idx]
+            best, best_d = None, 999
+            for cs in circle_spans:
+                if abs(cs["yc"] - yc_target) < 6:
+                    dx = abs(cs["xc"] - mxc)
+                    if dx < best_d: best_d, best = dx, cs
+            return best
+        states = states or {}
+        for key, new_v in states.items():
+            if not new_v or not str(new_v).strip(): continue
+            try: st_idx_str, mjb_str = key.split("_")
+            except: continue
+            try: st_idx = int(st_idx_str); mjb_idx = int(mjb_str)
+            except: continue
+            if st_idx >= len(struct["states"]): continue
+            sp = find_state(struct["states"][st_idx], mjb_idx)
+            if not sp: continue
+            if sp["text"] == str(new_v).strip(): continue
+            bb = sp["bbox"]
+            pad = 2
+            d.rectangle([bb[0]*sx-pad, bb[1]*sy-pad, bb[2]*sx+pad, bb[3]*sy+pad], fill="white")
+            size_px = int(sp["size"] * sy * 0.95)
+            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, str(new_v).strip(), size_px)
+    except Exception as _e:
+        print(f"[WARN] render_b5 편집 적용 실패: {_e!r}")
+    doc.close()
+    return img
 
 
 B6_ROW_LABELS = [
@@ -1341,38 +1467,7 @@ SITE_PRESETS = {
              "lower_label": "INVERTER", "lower_pts": [44.7, None, None]},
             {"target": "변압기,축전지", "voltage": "350/220V", "condition": "외기 23.4°C",
              "upper_label": "소내용TR", "upper_pts": [28.9, 28.5, 28.3],
-             "lower_label": "축전지1~3", "lower_pts": [20.4, 20.3, 20]},
-            {"target": "축전지", "voltage": "350/220V", "condition": "외기 23.4°C",
-             "upper_label": "축전지4~6", "upper_pts": [19.4, 20.1, None],
-             "lower_label": "축전지7~9", "lower_pts": [20, 19.8, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-1 차단기", "upper_pts": [18.5, 18.6, None],
-             "lower_label": "MJB-1", "lower_pts": [32.9, 38.5, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-2 차단기", "upper_pts": [24.3, 24.2, None],
-             "lower_label": "MJB-2", "lower_pts": [34.7, 44.3, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-3 차단기", "upper_pts": [25.1, 24.5, None],
-             "lower_label": "MJB-3", "lower_pts": [35.2, 41.6, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-4 차단기", "upper_pts": [24.5, 24.1, None],
-             "lower_label": "MJB-4", "lower_pts": [33.9, 41.4, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-5 차단기", "upper_pts": [25.8, 25.5, None],
-             "lower_label": "MJB-5", "lower_pts": [35.3, 39.6, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-6 차단기", "upper_pts": [33.3, 32.7, None],
-             "lower_label": "MJB-6", "lower_pts": [37.3, 40.6, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-7 차단기", "upper_pts": [26.3, 26.4, None],
-             "lower_label": "MJB-7", "lower_pts": [31, 30.3, None]},
-            {"target": "태양광셀단자함", "voltage": "760V", "condition": "외기 23.4°C",
-             "upper_label": "MJB-8 차단기", "upper_pts": [25.4, 25.9, None],
-             "lower_label": "MJB-8", "lower_pts": [29.6, 29.1, None]},
-        ],
-        "b8_captions": [
-            ["수변전실 외관", "VCB 패널", "MCCB 패널", "접지단자 점검"],
-            ["축전지실 외관", "인버터 외관", "MJB 외관", "기상센서함 점검"],
+             "lower_label": "축전지1~3", "lower_pts": [20.4, 20.3, 20]}
         ],
     },
 }
@@ -1385,39 +1480,39 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         p3_items: list = None,
                         b2_results: dict = None, b2_actions: dict = None,
                         b4_voltages: dict = None, b4_currents: dict = None, b4_results: dict = None,
+                        b5_currents: dict = None, b5_states: dict = None,
                         b6_results: list = None, b6_opinion: str = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
-    """블록+사진 → PDF 생성."""
     pages = []
     if include_cover:
         try: pages.append(render_cover(site_name, year_month))
-        except Exception as _e: print(f"[WARN] 표지: {_e}")
+        except Exception as _e: print(f"[WARN] cover: {_e}")
     if include_p2:
         try: pages.append(render_p2(site_name, year_month=year_month, inspection_date=inspection_date, items=p2_items, results=p2_results))
-        except Exception as _e: print(f"[WARN] 페이지2: {_e}")
+        except Exception as _e: print(f"[WARN] p2: {_e}")
     if include_p3:
         try: pages.append(render_p3(site_name, items=p3_items))
-        except Exception as _e: print(f"[WARN] 페이지3: {_e}")
+        except Exception as _e: print(f"[WARN] p3: {_e}")
     if include_p4 or include_b1:
         try: pages.append(render_p4(site_name))
-        except Exception as _e: print(f"[WARN] 붙임1: {_e}")
+        except Exception as _e: print(f"[WARN] b1: {_e}")
     if include_b2:
         try: pages.append(render_b2(site_name, results=b2_results, actions=b2_actions))
-        except Exception as _e: print(f"[WARN] 붙임2: {_e}")
+        except Exception as _e: print(f"[WARN] b2: {_e}")
     if include_b3:
         try: pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _e: print(f"[WARN] 붙임3: {_e}")
+        except Exception as _e: print(f"[WARN] b3: {_e}")
     if include_b4:
         try: pages.append(render_b4(site_name, voltages=b4_voltages, currents=b4_currents, results=b4_results))
-        except Exception as _e: print(f"[WARN] 붙임4: {_e}")
+        except Exception as _e: print(f"[WARN] b4: {_e}")
     if include_b5:
-        try: pages.append(render_b5(site_name))
-        except Exception as _e: print(f"[WARN] 붙임5: {_e}")
+        try: pages.append(render_b5(site_name, currents=b5_currents, states=b5_states))
+        except Exception as _e: print(f"[WARN] b5: {_e}")
     if include_b6:
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
-        except Exception as _e: print(f"[WARN] 붙임6: {_e}")
+        except Exception as _e: print(f"[WARN] b6: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
