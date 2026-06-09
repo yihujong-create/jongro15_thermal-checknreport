@@ -26,7 +26,7 @@ from flask import (
     redirect, url_for, jsonify, flash, session, abort,
 )
 from werkzeug.utils import secure_filename
-from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS, B5_STRUCTURE
+from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS, B5_STRUCTURE, B5P2_STRUCTURE
 try:
     from flir_decode import decode_flir, get_temp_at_pixel, get_temp_in_box, extract_embedded_visible
     _FLIR_OK = True
@@ -148,6 +148,7 @@ def site_form(site_name):
                            b2_items=B2_ITEMS.get(site_name, []),
                            b6_labels=B6_ROW_LABELS,
                            b5_struct=B5_STRUCTURE.get(site_name, {}),
+                           b5p2_struct=B5P2_STRUCTURE.get(site_name, {}),
                            today=date.today().isoformat())
 
 
@@ -379,6 +380,8 @@ def generate():
         # v122 — 붙임5 전류/상태
         b5_currents = {}
         b5_states = {}
+        b5p2_currents = {}
+        b5p2_states = {}
         for key, val in request.form.items():
             v = (val or "").strip()
             if not v: continue
@@ -386,6 +389,10 @@ def generate():
                 b5_currents[key[8:]] = v
             elif key.startswith("b5_state_"):
                 b5_states[key[9:]] = v
+            elif key.startswith("b5p2_curr_"):
+                b5p2_currents[key[10:]] = v
+            elif key.startswith("b5p2_state_"):
+                b5p2_states[key[11:]] = v
         # 페이지별 포함 여부
         include_cover = bool(request.form.get("pdf_include_cover"))
         include_p2    = bool(request.form.get("pdf_include_p2"))
@@ -445,6 +452,8 @@ def generate():
             b6_opinion=b6_opinion,
             b5_currents=b5_currents,
             b5_states=b5_states,
+            b5p2_currents=b5p2_currents,
+            b5p2_states=b5p2_states,
             include_b9=include_b9,
             include_b10=include_b10,
             include_b11=include_b11,

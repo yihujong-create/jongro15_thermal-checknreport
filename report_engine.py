@@ -922,6 +922,110 @@ def render_b10(site_name): return render_static_page(site_name, "b10")
 def render_b11(site_name): return render_static_page(site_name, "b11")
 
 
+# v125 — 붙임5 페이지2 (비축/티튜브만, MJB-5/MJB-6 등 추가 컬럼)
+B5P2_STRUCTURE = {
+    "비축기지": {
+        "mjbs": ["MJB-5", "MJB-6"],
+        "channels": [str(i) for i in range(1, 13)],
+        "states": ["과열 유무", "자동소화장치 상태", "SPD상태", "FUSE단선유무", "외함접지",
+                   "볼트풀림유무", "모듈접지선접속상태", "모듈파손유무(육안)", "통신모듈 상태"],
+    },
+    "티튜브": {
+        "mjbs": ["MJB-5", "MJB-6", "MJB-7", "MJB-8"],
+        "channels": [str(i) for i in range(1, 17)],
+        "states": ["과열 유무", "자동소화장치 상태", "SPD상태", "FUSE단선유무", "외함접지",
+                   "볼트풀림유무", "모듈접지선접속상태", "모듈파손유무(육안)", "통신모듈 상태"],
+    },
+}
+
+
+def render_b5p2(site_name: str, currents: dict = None, states: dict = None) -> "Image.Image":
+    """붙임5 페이지2 — 비축/티튜브 추가 MJB(5/6/7/8) 정보."""
+    pdf_path = _template_pdf_path("b5p2", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try:
+        d = ImageDraw.Draw(img)
+        struct = B5P2_STRUCTURE.get(site_name)
+        if not struct: doc.close(); return img
+        import re as _re
+        all_spans = []
+        for blk in page.get_text("dict")["blocks"]:
+            for ln in blk.get("lines", []):
+                for sp in ln.get("spans", []):
+                    if sp["text"].strip():
+                        all_spans.append({
+                            "text": sp["text"].strip(),
+                            "x0": sp["bbox"][0], "x1": sp["bbox"][2],
+                            "y0": sp["bbox"][1], "y1": sp["bbox"][3],
+                            "yc": (sp["bbox"][1]+sp["bbox"][3])/2,
+                            "xc": (sp["bbox"][0]+sp["bbox"][2])/2,
+                            "size": sp["size"], "bbox": sp["bbox"],
+                        })
+        mjb_spans = [s for s in all_spans if s["text"] in struct["mjbs"]]
+        mjb_spans.sort(key=lambda x: x["x0"])
+        mjb_xcs = [m["xc"] for m in mjb_spans]
+        ch_x_max = mjb_spans[0]["x0"] - 20 if mjb_spans else 150
+        ch_spans = [s for s in all_spans
+                    if s["text"] in struct["channels"] and s["x0"] < ch_x_max and s["y0"] > 100]
+        ch_spans.sort(key=lambda x: x["y0"])
+        ch_y_map = {s["text"]: s["yc"] for s in ch_spans}
+        curr_spans = [s for s in all_spans
+                      if _re.match(r'^\d+(\.\d+)?\s*A$', s["text"]) and s["x0"] > 150]
+        def find_curr(ch_str, mjb_idx):
+            yc_target = ch_y_map.get(ch_str)
+            if yc_target is None or mjb_idx >= len(mjb_xcs): return None
+            mxc = mjb_xcs[mjb_idx]
+            best, best_d = None, 999
+            for cs in curr_spans:
+                if abs(cs["yc"] - yc_target) < 6:
+                    dx = abs(cs["xc"] - mxc)
+                    if dx < best_d: best_d, best = dx, cs
+            return best
+        for key, new_v in (currents or {}).items():
+            if not new_v or not str(new_v).strip(): continue
+            try: ch_str, mjb_str = key.split("_"); mjb_idx = int(mjb_str)
+            except: continue
+            sp = find_curr(ch_str, mjb_idx)
+            if not sp: continue
+            bb = sp["bbox"]; pad = 2
+            d.rectangle([bb[0]*sx-pad, bb[1]*sy-pad, bb[2]*sx+pad, bb[3]*sy+pad], fill="white")
+            size_px = int(sp["size"] * sy * 0.95)
+            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, str(new_v).strip(), size_px)
+        state_y_map = {}
+        for st_label in struct["states"]:
+            for s in all_spans:
+                if s["text"] == st_label and s["x0"] < 150:
+                    state_y_map[st_label] = s["yc"]; break
+        circle_spans = [s for s in all_spans if s["text"] in ("○","O","X","/") and s["x0"] > 150]
+        def find_state(state_label, mjb_idx):
+            yc_target = state_y_map.get(state_label)
+            if yc_target is None or mjb_idx >= len(mjb_xcs): return None
+            mxc = mjb_xcs[mjb_idx]
+            best, best_d = None, 999
+            for cs in circle_spans:
+                if abs(cs["yc"] - yc_target) < 6:
+                    dx = abs(cs["xc"] - mxc)
+                    if dx < best_d: best_d, best = dx, cs
+            return best
+        for key, new_v in (states or {}).items():
+            if not new_v or not str(new_v).strip(): continue
+            try: st_idx_str, mjb_str = key.split("_"); st_idx = int(st_idx_str); mjb_idx = int(mjb_str)
+            except: continue
+            if st_idx >= len(struct["states"]): continue
+            sp = find_state(struct["states"][st_idx], mjb_idx)
+            if not sp or sp["text"] == str(new_v).strip(): continue
+            bb = sp["bbox"]; pad = 2
+            d.rectangle([bb[0]*sx-pad, bb[1]*sy-pad, bb[2]*sx+pad, bb[3]*sy+pad], fill="white")
+            size_px = int(sp["size"] * sy * 0.95)
+            _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, str(new_v).strip(), size_px)
+    except Exception as _e:
+        print(f"[WARN] render_b5p2 실패: {_e!r}")
+    doc.close()
+    return img
+
+
 # v122 — 붙임5 사이트별 구조 (MJB 컬럼 / 채널 / 상태 라벨)
 B5_STRUCTURE = {
     "조달청 청사": {
@@ -1440,37 +1544,7 @@ SITE_PRESETS = {
              "lower_label": "MJB-5", "lower_pts": [43.5, 36.1, None]},
             {"target": "태양광셀단자함", "voltage": "720V", "condition": "외기 12.7°C",
              "upper_label": "MJB-6 차단기", "upper_pts": [32.3, 33.3, None],
-             "lower_label": "MJB-6", "lower_pts": [42.7, 36.9, None]},
-        ],
-        "b8_captions": [
-            ["수변전실 외관", "VCB 패널", "MCCB 패널", "접지단자 점검"],
-            ["축전지실 외관", "인버터 외관", "MJB 외관", "기상센서함 점검"],
-        ],
-    },
-    "티튜브": {
-        "voltage_default": "22,900V",
-        "blocks": [
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "CH", "upper_pts": [22.2, 22.2, 21.6],
-             "lower_label": "LBS", "lower_pts": [21.3, 21.6, 21.3]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "POWER FUSE", "upper_pts": [28.9, 29.6, 28.8],
-             "lower_label": "LA", "lower_pts": [21.4, 21.6, 21.5]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "MOF", "upper_pts": [21.7, 21.7, 21.9],
-             "lower_label": "PT", "lower_pts": [33.2, 33.1, 23.3]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "CT", "upper_pts": [21.3, 21.2, 21.1],
-             "lower_label": "VCB", "lower_pts": [21.6, None, None]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "TR", "upper_pts": [26.5, 24.1, 26],
-             "lower_label": "ACB", "lower_pts": [24.7, None, None]},
-            {"target": "수변전실", "voltage": "22,900V", "condition": "외기 23.4°C",
-             "upper_label": "ACB 1차", "upper_pts": [32.3, 35.9, 35.1],
-             "lower_label": "INVERTER", "lower_pts": [44.7, None, None]},
-            {"target": "변압기,축전지", "voltage": "350/220V", "condition": "외기 23.4°C",
-             "upper_label": "소내용TR", "upper_pts": [28.9, 28.5, 28.3],
-             "lower_label": "축전지1~3", "lower_pts": [20.4, 20.3, 20]}
+             "lower_label": "MJB-6", "lower_pts": [42.7, 36.9, None]}
         ],
     },
 }
@@ -1484,6 +1558,7 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b2_results: dict = None, b2_actions: dict = None,
                         b4_voltages: dict = None, b4_currents: dict = None, b4_results: dict = None,
                         b5_currents: dict = None, b5_states: dict = None,
+                        b5p2_currents: dict = None, b5p2_states: dict = None,
                         b6_results: list = None, b6_opinion: str = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
@@ -1514,6 +1589,9 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
     if include_b5:
         try: pages.append(render_b5(site_name, currents=b5_currents, states=b5_states))
         except Exception as _e: print(f"[WARN] b5: {_e}")
+        if site_name in B5P2_STRUCTURE:
+            try: pages.append(render_b5p2(site_name, currents=b5p2_currents, states=b5p2_states))
+            except Exception as _e: print(f"[WARN] b5p2: {_e}")
     if include_b6:
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
         except Exception as _e: print(f"[WARN] b6: {_e}")

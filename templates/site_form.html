@@ -307,19 +307,69 @@ body{padding-bottom:42px !important;}
 <div class="block">
 <div class="block-header"><span class="block-num">붙임2</span><span class="block-title">{{ site_name }}</span></div>
 <div class="b3-section">
-<h3 class="b3-h3">항목별 점검결과 / 조치사항</h3>
-<div class="b3-grid">
-{% for item in b2_items %}
-<label style="display:flex;flex-direction:column;gap:2px;">{{ item }}
-  <span style="display:flex;gap:4px;">
-    <select name="b2_result_{{ item }}" form="report-form" style="width:56px;padding:4px;border:1px solid #ccc;border-radius:4px;">
-      <option value="">○</option><option value="X">X</option>
-    </select>
-    <input type="text" name="b2_action_{{ item }}" form="report-form" placeholder="조치사항" style="flex:1;">
-  </span>
-</label>
+<h3 class="b3-h3">송 수전설비 점검기록표 (PDF 양식 동일)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;width:90px;">구 분</th>
+<th style="border:1px solid #999;padding:6px;width:140px;">점검항목</th>
+<th style="border:1px solid #999;padding:6px;width:80px;">점검결과</th>
+<th style="border:1px solid #999;padding:6px;width:100px;">점검기준</th>
+<th style="border:1px solid #999;padding:6px;">조 치 사 항</th>
+</tr></thead>
+<tbody>
+{% set b2_specs = {
+"조달청 청사": [
+  ["저압설비","CT","육안,열화상",""],
+  ["","MCCB","육안,열화상",""],
+  ["","SPD","육안,열화상",""],
+  ["","INVERTER","육안,열화상",""],
+  ["","전선,케이블","육안,열화상","세부점검사항은 접속반 모듈 점검기록표 참조"],
+  ["","기타설비","육안,열화상",""]
+],
+"비축기지": [
+  ["특고압설비","CH","육안,열화상",""],
+  ["","LBS","육안,열화상",""],
+  ["","LA","육안,열화상",""],
+  ["","MOF(수전용)","육안,열화상",""],
+  ["","MOF(송전용)","육안,열화상",""],
+  ["","PF","육안,열화상",""],
+  ["","PT","육안,열화상",""],
+  ["","CT","육안,열화상",""],
+  ["","VCB","육안,열화상",""],
+  ["","TR","육안,열화상",""],
+  ["","큐비클","육안",""],
+  ["","출입문잠금시설","육안",""],
+  ["","계전기","육안,열화상",""],
+  ["","ACB","육안,열화상","세부점검사항은 ACB 점검기록표 참조"],
+  ["저압설비","INVERTER","육안,열화상","세부점검사항은 인버터 점검기록표 참조"],
+  ["","CONDENSER","육안,열화상",""],
+  ["","축전지","육안,열화상",""],
+  ["","MCCB","육안,열화상",""],
+  ["","전선,케이블","육안,열화상",""],
+  ["","정류기반","육안,열화상",""],
+  ["","기타시설","육안,열화상",""]
+]
+} %}
+{% set b2_rows = b2_specs.get(site_name, b2_specs.get("비축기지") if site_name == "티튜브" else []) %}
+{% for row in b2_rows %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[0] }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[1] }}</td>
+<td style="border:1px solid #999;padding:2px;text-align:center;">
+  <select name="b2_result_{{ row[1] }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">○</option><option value="X">X</option>
+  </select>
+</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;font-size:11px;">{{ row[2] }}</td>
+<td style="border:1px solid #999;padding:2px;">
+  <input type="text" name="b2_action_{{ row[1] }}" form="report-form" value="{{ row[3] }}" placeholder="조치사항" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+</td>
+</tr>
 {% endfor %}
+</tbody></table>
 </div>
+<p style="font-size:11px;color:#666;margin-top:6px;">점검결과 표시: 적합 ○ / 부적합 X</p>
 </div>
 </div>
 </section>
@@ -331,27 +381,46 @@ body{padding-bottom:42px !important;}
 <div class="block">
 <div class="block-header"><span class="block-num">붙임3</span><span class="block-title">인버터 (INV-1)</span></div>
 <div class="b3-section">
-  <h3 class="b3-h3">운전상황</h3>
-  <div class="b3-grid">
-    <label>DCV (V)<input type="text" name="b3_dcv" placeholder="예: 667.27"></label>
-    <label>DCA (A)<input type="text" name="b3_dca" placeholder="예: 69.91"></label>
-    <label>ACV (V)<input type="text" name="b3_acv" placeholder="예: 399.38"></label>
-    <label>ACA (A)<input type="text" name="b3_aca" placeholder="예: 66.54"></label>
-    <label>KW<input type="text" name="b3_kw" placeholder="예: 47"></label>
-    <label>HZ<input type="text" name="b3_hz" placeholder="예: 59.96"></label>
-    <label>누적발전량 (MWh)<input type="text" name="b3_cum_mwh" placeholder="예: 862.698"></label>
-  </div>
-  <h3 class="b3-h3">점검결과</h3>
-  <div class="b3-grid b3-grid-chk">
-    <label>과열 유무<input type="text" name="b3_chk_overheat" value="양호"></label>
-    <label>접지선 접속<input type="text" name="b3_chk_ground" value="양호"></label>
-    <label>입출력 전압적정<input type="text" name="b3_chk_voltage" value="양호"></label>
-    <label>출력 과전류 유무<input type="text" name="b3_chk_overcurrent" value="양호"></label>
-    <label>FAN 동작상태<input type="text" name="b3_chk_fan" value="양호"></label>
-    <label>SPD 상태<input type="text" name="b3_chk_spd" value="양호"></label>
-    <label>필터 상태<input type="text" name="b3_chk_filter" value="양호"></label>
-    <label>내부청결상태<input type="text" name="b3_chk_clean" value="양호"></label>
-  </div>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="4" style="border:1px solid #999;padding:6px;">인버터 점검기록표 — INV-1</th>
+</tr></thead>
+<tbody>
+<tr><th style="border:1px solid #999;padding:6px;background:#f5f5f5;width:90px;" rowspan="7">운전<br>상황</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:160px;">DCV (V)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_dcv" form="report-form" placeholder="예: 667.27" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">DCA (A)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_dca" form="report-form" placeholder="예: 69.91" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">ACV (V)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_acv" form="report-form" placeholder="예: 399.38" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">ACA (A)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_aca" form="report-form" placeholder="예: 66.54" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">KW</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_kw" form="report-form" placeholder="예: 47" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">HZ</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_hz" form="report-form" placeholder="예: 59.96" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">누적발전량 (MWh)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_cum_mwh" form="report-form" placeholder="예: 862.698" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th style="border:1px solid #999;padding:6px;background:#f5f5f5;" rowspan="8">점검<br>결과</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">과열 유무</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_overheat" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">접지선 접속</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_ground" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">입출력 전압적정</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_voltage" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">출력 과전류 유무</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_overcurrent" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">FAN 동작상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_fan" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">SPD 상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_spd" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">필터 상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_filter" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">내부청결상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_clean" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+</tbody></table>
+</div>
 </div>
 </div>
 </section>
@@ -363,50 +432,46 @@ body{padding-bottom:42px !important;}
 <div class="block">
 <div class="block-header"><span class="block-num">붙임4</span><span class="block-title">{{ site_name }}</span></div>
 <div class="b3-section">
-<h3 class="b3-h3">전압 / 전류</h3>
-<div class="b3-grid">
-<label>전압 R-S<input type="text" name="b4_v_rs" form="report-form" placeholder="예: 397.5V"></label>
-<label>전압 S-T<input type="text" name="b4_v_st" form="report-form" placeholder="예: 399.38V"></label>
-<label>전압 T-R<input type="text" name="b4_v_tr" form="report-form" placeholder="예: 393.37V"></label>
-<label>전류 R<input type="text" name="b4_a_r" form="report-form" placeholder="예: 66.54A"></label>
-<label>전류 S<input type="text" name="b4_a_s" form="report-form" placeholder="예: 67.86A"></label>
-<label>전류 T<input type="text" name="b4_a_t" form="report-form" placeholder="예: 68.36A"></label>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="3" style="border:1px solid #999;padding:6px;">{{ "MCCB-PANEL" if site_name == "조달청 청사" else "ACB-PANEL" }} 점검기록표</th>
+</tr></thead>
+<tbody>
+<tr><th rowspan="3" style="border:1px solid #999;padding:6px;background:#f5f5f5;width:90px;">전 압<br>(V)</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:120px;">R-S</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_rs" form="report-form" placeholder="예: 397.5V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">S-T</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_st" form="report-form" placeholder="예: 399.38V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">T-R</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_tr" form="report-form" placeholder="예: 393.37V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th rowspan="3" style="border:1px solid #999;padding:6px;background:#f5f5f5;">전 류<br>(A)</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">R</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_r" form="report-form" placeholder="예: 66.54A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">S</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_s" form="report-form" placeholder="예: 67.86A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">T</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_t" form="report-form" placeholder="예: 68.36A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th rowspan="8" style="border:1px solid #999;padding:6px;background:#f5f5f5;">점검<br>결과<br>·<br>판정</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">과열 유무</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_overheat" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">접지선 접속</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_ground" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">PT 및 CT상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_pt_ct" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">볼트풀림유무</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_bolt" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">제어회로</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_control" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">SPD상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_spd" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">계측기표시</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_meter" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">내부청결상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_clean" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+</tbody></table>
 </div>
-<h3 class="b3-h3">점검결과 · 판정</h3>
-<div class="b3-grid">
-<label>과열 유무
-  <select name="b4_r_overheat" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>접지선 접속
-  <select name="b4_r_ground" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>PT 및 CT상태
-  <select name="b4_r_pt_ct" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>볼트풀림유무
-  <select name="b4_r_bolt" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>제어회로
-  <select name="b4_r_control" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>SPD상태
-  <select name="b4_r_spd" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>계측기표시
-  <select name="b4_r_meter" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-<label>내부청결상태
-  <select name="b4_r_clean" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
-    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
-  </select></label>
-</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">* 본 전압/전류의 측정치는 측정시간 차이와 일조량 변화로 인버터 출력값과 다소 다를 수 있음.</p>
 </div>
 </div>
 </section>
@@ -456,6 +521,55 @@ body{padding-bottom:42px !important;}
 </div>
 </div>
 </section>
+
+{% if b5p2_struct.get('mjbs') %}
+<!-- 붙임5 페이지 2 (비축/티튜브만) -->
+<section class="block-section">
+<h2>📑 붙임5 (페이지 2) — 접속반 및 모듈 점검기록표 (2/2)</h2>
+<p class="hint">추가 접속반(MJB-5/6/7/8) 전류측정 및 상태점검. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임5-2</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">접속반별 전류측정 (A) — 추가 MJB</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;">CH</th>
+{% for mjb in b5p2_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for ch in b5p2_struct.get('channels', []) %}
+<tr><td style="border:1px solid #ddd;padding:4px;text-align:center;background:#fafafa;">{{ ch }}</td>
+{% for mjb in b5p2_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><input type="text" name="b5p2_curr_{{ ch }}_{{ loop.index0 }}" form="report-form" placeholder="A" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<h3 class="b3-h3">접속반별 상태점검 (○/X//) — 추가 MJB</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;text-align:left;">상태</th>
+{% for mjb in b5p2_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for st in b5p2_struct.get('states', []) %}
+{% set st_idx = loop.index0 %}
+<tr><td style="border:1px solid #ddd;padding:4px;background:#fafafa;">{{ st }}</td>
+{% for mjb in b5p2_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><select name="b5p2_state_{{ st_idx }}_{{ loop.index0 }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+  <option value="O" selected>○</option><option value="X">X</option><option value="/">/</option>
+</select></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">* 일사량에 따라 전류치가 크게 변경될 수 있으니 참고바랍니다.</p>
+</div>
+</div>
+</section>
+{% endif %}
 
 <!-- 붙임6 (편집) -->
 <section class="block-section">
