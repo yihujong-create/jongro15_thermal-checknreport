@@ -1000,24 +1000,63 @@ def _overlay_overrides(img, page, sx, sy, overrides):
                 break
 
 
-def render_b9(site_name: str, overrides: dict = None) -> "Image.Image":
+def render_b9(site_name: str, overrides: dict = None, photo_paths: list = None) -> "Image.Image":
     pdf_path = _template_pdf_path("b9", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
     try: _overlay_overrides(img, page, sx, sy, overrides)
     except Exception as _e: print(f"[WARN] b9 overlay: {_e!r}")
+    # 사진 1장 — 하단 중앙 (기존 PDF 사진 영역 정확히 덮어쓰기)
+    try:
+        if photo_paths and len(photo_paths) > 0 and photo_paths[0] and os.path.exists(photo_paths[0]):
+            W_img, H_img = img.size
+            # PDF 사진 위치: 중앙 50% 너비, 60~80% 높이 영역
+            ph_w = int(W_img * 0.5); ph_h = int(H_img * 0.2)
+            ph_x = (W_img - ph_w) // 2; ph_y = int(H_img * 0.62)
+            try:
+                p = Image.open(photo_paths[0]).convert("RGB")
+                p.thumbnail((ph_w, ph_h), Image.LANCZOS)
+                # 흰색 배경으로 덮고 사진 paste
+                d_ = ImageDraw.Draw(img)
+                d_.rectangle([ph_x-2, ph_y-2, ph_x+ph_w+2, ph_y+ph_h+2], fill="white")
+                px_off = ph_x + (ph_w - p.width) // 2
+                py_off = ph_y + (ph_h - p.height) // 2
+                img.paste(p, (px_off, py_off))
+            except Exception as _pe: print(f"[WARN] b9 photo paste: {_pe!r}")
+    except Exception as _e: print(f"[WARN] b9 photo: {_e!r}")
     doc.close()
     return img
 
 
-def render_b10(site_name: str, overrides: dict = None) -> "Image.Image":
+def render_b10(site_name: str, overrides: dict = None, photo_paths: list = None) -> "Image.Image":
     pdf_path = _template_pdf_path("b10", site_name)
     if not os.path.exists(pdf_path):
         return Image.new("RGB", (2481, 3509), "white")
     img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
     try: _overlay_overrides(img, page, sx, sy, overrides)
     except Exception as _e: print(f"[WARN] b10 overlay: {_e!r}")
+    # 사진 3장 — 표 아래 가로 3분할 (페이지 안쪽)
+    try:
+        if photo_paths:
+            W_img, H_img = img.size
+            # 표 끝 ~ 페이지 하단 사이 (페이지 잘림 방지)
+            ph_h = int(H_img * 0.13)
+            ph_w = int(W_img * 0.28)
+            ph_y = int(H_img * 0.72)
+            d_ = ImageDraw.Draw(img)
+            for i, pp in enumerate(photo_paths[:3]):
+                if not pp or not os.path.exists(pp): continue
+                ph_x = int(W_img * 0.05) + i * (ph_w + int(W_img * 0.025))
+                try:
+                    p = Image.open(pp).convert("RGB")
+                    p.thumbnail((ph_w, ph_h), Image.LANCZOS)
+                    d_.rectangle([ph_x-2, ph_y-2, ph_x+ph_w+2, ph_y+ph_h+2], fill="white")
+                    px_off = ph_x + (ph_w - p.width) // 2
+                    py_off = ph_y + (ph_h - p.height) // 2
+                    img.paste(p, (px_off, py_off))
+                except Exception as _pe: print(f"[WARN] b10 photo {i} paste: {_pe!r}")
+    except Exception as _e: print(f"[WARN] b10 photo: {_e!r}")
     doc.close()
     return img
 
@@ -1849,6 +1888,7 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         b5p2_currents: dict = None, b5p2_states: dict = None,
                         b6_results: list = None, b6_opinion: str = None,
                         b9_overrides: dict = None, b10_overrides: dict = None, b11_overrides: dict = None,
+                        b9_photos: list = None, b10_photos: list = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True,
@@ -1885,10 +1925,10 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
         except Exception as _e: print(f"[WARN] b6: {_e}")
     if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
-        try: pages.append(render_b9(site_name, overrides=b9_overrides))
+        try: pages.append(render_b9(site_name, overrides=b9_overrides, photo_paths=b9_photos))
         except Exception as _e: print(f"[WARN] b9: {_e}")
     if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
-        try: pages.append(render_b10(site_name, overrides=b10_overrides))
+        try: pages.append(render_b10(site_name, overrides=b10_overrides, photo_paths=b10_photos))
         except Exception as _e: print(f"[WARN] b10: {_e}")
     if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
         try: pages.append(render_b11(site_name, overrides=b11_overrides))

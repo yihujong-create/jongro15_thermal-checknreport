@@ -464,6 +464,21 @@ def generate():
                 field = key[4:]
                 old_v = rec.get(field, "")
                 if old_v and v != old_v: b11_overrides[old_v] = v
+        # v132 — b9/b10 사진 업로드
+        b9_photos = []
+        b10_photos = []
+        for fname in ["b9_photo"]:
+            f = request.files.get(fname)
+            if f and f.filename:
+                ph = os.path.join(UPLOAD_DIR, secure_filename(f"{site_name}_{fname}_{f.filename}"))
+                f.save(ph); b9_photos.append(ph)
+        for fname in ["b10_photo_1","b10_photo_2","b10_photo_3"]:
+            f = request.files.get(fname)
+            if f and f.filename:
+                ph = os.path.join(UPLOAD_DIR, secure_filename(f"{site_name}_{fname}_{f.filename}"))
+                f.save(ph); b10_photos.append(ph)
+            else:
+                b10_photos.append(None)
         # 붙임3 입력값 수집
         b3_run = {}
         for k in ["dcv", "dca", "acv", "aca", "kw", "hz", "cum_mwh"]:
@@ -514,6 +529,8 @@ def generate():
             b9_overrides=b9_overrides,
             b10_overrides=b10_overrides,
             b11_overrides=b11_overrides,
+            b9_photos=b9_photos,
+            b10_photos=b10_photos,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )
