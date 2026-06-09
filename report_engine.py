@@ -917,9 +917,166 @@ def render_static_page(site_name: str, prefix: str) -> "Image.Image":
 
 
 def render_b1(site_name): return render_static_page(site_name, "b1")
-def render_b4(site_name): return render_static_page(site_name, "b4")
 def render_b5(site_name): return render_static_page(site_name, "b5")
-def render_b6(site_name): return render_static_page(site_name, "b6")
+
+
+B6_ROW_LABELS = [
+    "1. 출력 — 일사량 대비 출력", "2. 외관 — 변색(황변/백화)",
+    "3. 외관 — 적외선열화상 핫스팟", "4. 외관 — 프레임 부식",
+    "5. 음영 — 어레이 주변 음영", "6. 본딩 — 모듈과 지지대 접속",
+    "7. 기초상태 — 결속/정착", "8. 볼트체결 — 풀림방지",
+    "9. 접속함 — 외함 부식", "10. 지지물 — 설치상태",
+    "11. 도금상태 — 아연도금", "12. 고정 — 모듈 직렬배선",
+    "13. 전선연결 — DC케이블", "14. 커넥터 — 빗물 침투방지",
+    "15. 외관 — 외함 손상", "16. 작동상태 — 소음/진동/냄새",
+    "17. 전선로 — 배선 손상", "18. 설치환경 — 온도/습도/청소",
+    "19. 보호값 — 계전기 설정", "20. 부지안전 — 배수시설",
+    "21. 부지안전 — 지지대 침하", "22. 부지안전 — 지반 침하",
+    "23. 부지안전 — 축대 균열", "24. 구조물 — 지붕/기초",
+    "25. 구조물 — 추가 하중",
+]
+
+
+def render_b6(site_name: str, results: list = None, opinion: str = None) -> "Image.Image":
+    """붙임6 — 태양광발전설비 점검기록표. 25행 점검결과 + 종합의견 편집."""
+    pdf_path = _template_pdf_path("b6", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try:
+        d = ImageDraw.Draw(img)
+        all_spans = []
+        for blk in page.get_text("dict")["blocks"]:
+            for ln in blk.get("lines", []):
+                for sp in ln.get("spans", []):
+                    if sp["text"].strip():
+                        all_spans.append({
+                            "text": sp["text"].strip(),
+                            "bbox": sp["bbox"],
+                            "size": sp["size"],
+                        })
+        result_spans = [sp for sp in all_spans
+                        if sp["text"] in ("O", "○", "X", "x", "/")
+                        and sp["bbox"][0] > 450]
+        result_spans.sort(key=lambda x: x["bbox"][1])
+        if results:
+            for i, new_val in enumerate(results):
+                if i >= len(result_spans): break
+                if not new_val: continue
+                nv = str(new_val).strip()
+                if not nv: continue
+                sp = result_spans[i]
+                if sp["text"] == nv: continue
+                bb = sp["bbox"]
+                pad = 2
+                d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                             bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+                size_px = int(sp["size"] * sy * 0.95)
+                _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, nv, size_px)
+        if opinion and opinion.strip():
+            for sp in all_spans:
+                if "절연 및 접지저항 측정" in sp["text"] and "-" in sp["text"]:
+                    bb = sp["bbox"]
+                    pad = 2
+                    d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                 bb[2]*sx + pad + 200, bb[3]*sy + pad], fill="white")
+                    size_px = int(sp["size"] * sy * 0.95)
+                    _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, opinion.strip(), size_px)
+                    break
+    except Exception as _e:
+        print(f"[WARN] render_b6 편집 적용 실패: {_e!r}")
+    doc.close()
+    return img
+
+
+# v118 — 붙임4 ACB/MCCB-PANEL 점검기록표: 전압/전류/판정 항목
+B4_VOLT_LABELS = {"rs": "R-S", "st": "S-T", "tr": "T-R"}  # x label → row label
+B4_CURR_LABELS = {"r": "R", "s": "S", "t": "T"}
+B4_RESULT_LABELS = {
+    "overheat": "과열 유무",
+    "ground":   "접지선 접속",
+    "pt_ct":    "PT 및 CT상태",
+    "bolt":     "볼트풀림유무",
+    "control":  "제어회로",
+    "spd":      "SPD상태",
+    "meter":    "계측기표시",
+    "clean":    "내부청결상태",
+}
+
+
+def render_b4(site_name: str, voltages: dict = None, currents: dict = None,
+              results: dict = None) -> "Image.Image":
+    """붙임4 — ACB/MCCB-PANEL 점검기록표. 전압/전류/판정 편집.
+    voltages: {"rs":"380.5V", "st":..., "tr":...}
+    currents: {"r":"65.0A", "s":..., "t":...}
+    results:  {"overheat":"양호" | "불량", ...}
+    빈 값/None은 원본 유지.
+    """
+    pdf_path = _template_pdf_path("b4", site_name)
+    if not os.path.exists(pdf_path):
+        return Image.new("RGB", (2481, 3509), "white")
+    img, page, doc, sx, sy = _render_pdf_page_to_img(pdf_path)
+    try:
+        d = ImageDraw.Draw(img)
+        # 모든 span 수집
+        all_spans = []
+        for blk in page.get_text("dict")["blocks"]:
+            for ln in blk.get("lines", []):
+                for sp in ln.get("spans", []):
+                    if sp["text"].strip():
+                        all_spans.append({
+                            "text": sp["text"].strip(),
+                            "bbox": sp["bbox"],
+                            "size": sp["size"],
+                        })
+        def _find_y(label):
+            """라벨의 y중심 반환 (없으면 None)."""
+            for sp in all_spans:
+                if sp["text"] == label and sp["bbox"][0] < 250:  # 좌측 영역
+                    return (sp["bbox"][1] + sp["bbox"][3]) / 2
+            return None
+        def _replace_value_at(y_center, new_text, x_lo=300, x_hi=420):
+            """같은 행의 값 span을 새 텍스트로 교체."""
+            for sp in all_spans:
+                bb = sp["bbox"]
+                sy_c = (bb[1] + bb[3]) / 2
+                if abs(sy_c - y_center) < 6 and x_lo < bb[0] < x_hi:
+                    pad = 2
+                    d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                 bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+                    size_px = int(sp["size"] * sy * 0.95)
+                    _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, new_text, size_px)
+                    return True
+            return False
+        voltages = voltages or {}
+        currents = currents or {}
+        results  = results  or {}
+        # 전압 R-S / S-T / T-R
+        for k, lab in B4_VOLT_LABELS.items():
+            v = (voltages.get(k) or "").strip()
+            if not v: continue
+            yc = _find_y(lab)
+            if yc is not None: _replace_value_at(yc, v)
+        # 전류 R / S / T (라벨이 단일 글자 — 좌측 작은 영역)
+        for k, lab in B4_CURR_LABELS.items():
+            v = (currents.get(k) or "").strip()
+            if not v: continue
+            for sp in all_spans:
+                bb = sp["bbox"]
+                if sp["text"] == lab and bb[0] < 200 and (bb[2] - bb[0]) < 12:
+                    yc = (bb[1] + bb[3]) / 2
+                    _replace_value_at(yc, v)
+                    break
+        # 판정 (양호/불량)
+        for k, lab in B4_RESULT_LABELS.items():
+            v = (results.get(k) or "").strip()
+            if not v: continue
+            yc = _find_y(lab)
+            if yc is not None: _replace_value_at(yc, v)
+    except Exception as _e:
+        print(f"[WARN] render_b4 편집 적용 실패: {_e!r}")
+    doc.close()
+    return img
 
 
 # v117 — 붙임2 송 수전설비 점검기록표: 사이트별 점검항목 (PDF에 표시되는 순서)
@@ -1227,58 +1384,40 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         inspection_date: str = "", p2_items: list = None, p2_results: list = None,
                         p3_items: list = None,
                         b2_results: dict = None, b2_actions: dict = None,
+                        b4_voltages: dict = None, b4_currents: dict = None, b4_results: dict = None,
+                        b6_results: list = None, b6_opinion: str = None,
                         include_p2: bool = True, include_p3: bool = True, include_p4: bool = True,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True):
-    """블록 + 사진 정보로 PDF 생성하여 out_path에 저장."""
+    """블록+사진 → PDF 생성."""
     pages = []
     if include_cover:
-        try:
-            pages.append(render_cover(site_name, year_month))
-        except Exception as _ce:
-            print(f"[WARN] 표지 합성 실패: {_ce}")
+        try: pages.append(render_cover(site_name, year_month))
+        except Exception as _e: print(f"[WARN] 표지: {_e}")
     if include_p2:
-        try:
-            pages.append(render_p2(site_name, year_month=year_month,
-                                   inspection_date=inspection_date,
-                                   items=p2_items, results=p2_results))
-        except Exception as _e:
-            print(f"[WARN] 페이지2 합성 실패: {_e}")
+        try: pages.append(render_p2(site_name, year_month=year_month, inspection_date=inspection_date, items=p2_items, results=p2_results))
+        except Exception as _e: print(f"[WARN] 페이지2: {_e}")
     if include_p3:
-        try:
-            pages.append(render_p3(site_name, items=p3_items))
-        except Exception as _e:
-            print(f"[WARN] 페이지3 합성 실패: {_e}")
+        try: pages.append(render_p3(site_name, items=p3_items))
+        except Exception as _e: print(f"[WARN] 페이지3: {_e}")
     if include_p4 or include_b1:
-        try:
-            pages.append(render_p4(site_name))
-        except Exception as _e:
-            print(f"[WARN] 붙임1 합성 실패: {_e}")
+        try: pages.append(render_p4(site_name))
+        except Exception as _e: print(f"[WARN] 붙임1: {_e}")
     if include_b2:
-        try:
-            pages.append(render_b2(site_name, results=b2_results, actions=b2_actions))
-        except Exception as _e:
-            print(f"[WARN] 붙임2 합성 실패: {_e}")
+        try: pages.append(render_b2(site_name, results=b2_results, actions=b2_actions))
+        except Exception as _e: print(f"[WARN] 붙임2: {_e}")
     if include_b3:
-        try:
-            pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _e:
-            print(f"[WARN] 붙임3 합성 실패: {_e}")
+        try: pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
+        except Exception as _e: print(f"[WARN] 붙임3: {_e}")
     if include_b4:
-        try:
-            pages.append(render_b4(site_name))
-        except Exception as _e:
-            print(f"[WARN] 붙임4 합성 실패: {_e}")
+        try: pages.append(render_b4(site_name, voltages=b4_voltages, currents=b4_currents, results=b4_results))
+        except Exception as _e: print(f"[WARN] 붙임4: {_e}")
     if include_b5:
-        try:
-            pages.append(render_b5(site_name))
-        except Exception as _e:
-            print(f"[WARN] 붙임5 합성 실패: {_e}")
+        try: pages.append(render_b5(site_name))
+        except Exception as _e: print(f"[WARN] 붙임5: {_e}")
     if include_b6:
-        try:
-            pages.append(render_b6(site_name))
-        except Exception as _e:
-            print(f"[WARN] 붙임6 합성 실패: {_e}")
+        try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
+        except Exception as _e: print(f"[WARN] 붙임6: {_e}")
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
@@ -1288,16 +1427,14 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
     for items in b8_pages:
         pages.append(render_b8(items, page_num))
         page_num += 1
-    if not pages:
-        raise ValueError("PDF empty")
+    if not pages: raise ValueError("PDF empty")
     import gc, io as _io, fitz as _fitz
     A4_PX = (1654, 2339)
     pdf_doc = _fitz.open()
     for idx in range(len(pages)):
         p = pages[idx]
         rgb = p.convert("RGB")
-        if rgb.size != A4_PX:
-            rgb = rgb.resize(A4_PX, Image.LANCZOS)
+        if rgb.size != A4_PX: rgb = rgb.resize(A4_PX, Image.LANCZOS)
         buf = _io.BytesIO()
         rgb.save(buf, format="JPEG", quality=80, optimize=True)
         jpg_bytes = buf.getvalue()

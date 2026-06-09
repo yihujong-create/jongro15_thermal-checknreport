@@ -296,6 +296,67 @@ body{padding-bottom:42px !important;}
 </label>
 {% endfor %}
 </div>
+<h3 class="b3-h3">붙임4 — ACB/MCCB-PANEL 점검기록표 (전압/전류/판정)</h3>
+<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">비워두면 원본 값 유지. 입력 시 PDF에 새 값으로 교체.</p>
+<div class="b3-grid">
+<label>전압 R-S<input type="text" name="b4_v_rs" form="report-form" placeholder="예: 397.5V"></label>
+<label>전압 S-T<input type="text" name="b4_v_st" form="report-form" placeholder="예: 399.38V"></label>
+<label>전압 T-R<input type="text" name="b4_v_tr" form="report-form" placeholder="예: 393.37V"></label>
+<label>전류 R<input type="text" name="b4_a_r" form="report-form" placeholder="예: 66.54A"></label>
+<label>전류 S<input type="text" name="b4_a_s" form="report-form" placeholder="예: 67.86A"></label>
+<label>전류 T<input type="text" name="b4_a_t" form="report-form" placeholder="예: 68.36A"></label>
+</div>
+<div class="b3-grid">
+<label>과열 유무
+  <select name="b4_r_overheat" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>접지선 접속
+  <select name="b4_r_ground" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>PT 및 CT상태
+  <select name="b4_r_pt_ct" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>볼트풀림유무
+  <select name="b4_r_bolt" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>제어회로
+  <select name="b4_r_control" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>SPD상태
+  <select name="b4_r_spd" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>계측기표시
+  <select name="b4_r_meter" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+<label>내부청결상태
+  <select name="b4_r_clean" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option><option value="양호">양호</option><option value="불량">불량</option>
+  </select></label>
+</div>
+<h3 class="b3-h3">붙임6 — 태양광발전설비 점검기록표 (25행 점검결과 + 종합의견)</h3>
+<p class="hint" style="margin:4px 0 8px;color:#666;font-size:0.85em;">기본값 = 원본 PDF 값 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+<div class="b3-grid">
+{% for label in b6_labels %}
+<label style="display:flex;flex-direction:column;gap:2px;font-size:0.85em;">{{ label }}
+  <select name="b6_r_{{ loop.index }}" form="report-form" style="padding:4px;border:1px solid #ccc;border-radius:4px;">
+    <option value="">(원본 유지)</option>
+    <option value="O">○ 적합</option>
+    <option value="X">X 부적합</option>
+    <option value="/">/ 해당없음</option>
+  </select>
+</label>
+{% endfor %}
+</div>
+<label style="display:block;margin-top:8px;">종합의견 (페이지 하단)
+<textarea name="b6_opinion" form="report-form" rows="2" placeholder="예: 절연 및 접지저항 측정 - 이상 없음" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;"></textarea>
+</label>
 </div>
 </section>
 
@@ -1602,77 +1663,62 @@ function populateFormData(data) {
         Object.keys(data.offsets).forEach(function(n) {
           var inp = document.querySelector('input[data-offset="' + n + '"]');
           if (inp) inp.value = data.offsets[n];
-          try { reapplyOffset(n); } catch (e) {}
         });
       }
-    }, 300);
-  } else if (data.offsets) {
-    setTimeout(function() {
-      Object.keys(data.offsets).forEach(function(n) {
-        var inp = document.querySelector('input[data-offset="' + n + '"]');
-        if (inp) inp.value = data.offsets[n];
-      });
-    }, 200);
+    }, 100);
   }
-  console.log('[populate] 완료: fields=' + Object.keys(data.fields || {}).length + ', photos=' + photoCount + ', markers=' + Object.keys(data.markers || {}).length);
-}
-
-// 수동 저장
-function togglePdfPagesAll() {
-  var cbs = document.querySelectorAll('.pdf-pages-bar input[type="checkbox"]');
-  var allChecked = Array.prototype.every.call(cbs, function(cb){ return cb.checked; });
-  cbs.forEach(function(cb){ cb.checked = !allChecked; });
 }
 
 function saveReport() {
-  var nameInp = document.getElementById('report-name');
-  var name = (nameInp.value || '').trim();
-  var siteName = document.body.dataset.siteName;
-  var data = serializeFormData();
-  var photoCount = Object.keys(data.photos || {}).length;
-  var totalSize = 0;
-  for (var _k in data.photos) totalSize += (data.photos[_k] || '').length;
-  console.log('[save] photos=' + photoCount + ', total=' + Math.round(totalSize/1024) + 'KB');
-  setAutosaveStatus('saving', '저장 중... (사진 ' + photoCount + '장, ' + Math.round(totalSize/1024) + 'KB)');
-  fetch('/api/save', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ name: name, site_name: siteName, data: data, is_draft: false })
-  }).then(function(r){return r.json();}).then(function(res) {
-    if (res.success) {
-      currentReportId = res.id;
-      if (!name) nameInp.value = res.name;
-      setAutosaveStatus('saved', '✓ 저장됨 (사진 ' + photoCount + '장)');
-      setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
-    } else {
-      setAutosaveStatus('error', '저장 실패');
-    }
-  }).catch(function(e) {
-    setAutosaveStatus('error', '저장 실패');
-    console.error('save error', e);
-  });
+  var name = document.getElementById('report-name') ? document.getElementById('report-name').value : '';
+  if (!name || !name.trim()) { alert('보고서 이름을 입력하세요.'); return; }
+  var data = collectFormData();
+  var fd = new FormData();
+  fd.append('name', name);
+  fd.append('site_name', SITE_NAME);
+  fd.append('data_json', JSON.stringify(data));
+  fd.append('is_draft', '0');
+  fetch('/api/save', { method:'POST', body: fd }).then(function(r){return r.json();}).then(function(res){
+    if (res && res.id) { alert('저장 완료'); } else { alert('저장 실패: ' + (res && res.error || 'unknown')); }
+  }).catch(function(e){ alert('저장 오류: ' + e); });
 }
 
-// (자동 백업 기능 제거됨 — 수동 저장만 사용)
+function newReport() { if (!confirm('현재 내용을 초기화하고 새 보고서를 작성?')) return; location.reload(); }
+function openLoadDialog() { var dlg = document.getElementById('load-dialog'); if (dlg) dlg.style.display='block'; loadReports(); }
+function closeLoadDialog() { var dlg = document.getElementById('load-dialog'); if (dlg) dlg.style.display='none'; }
 
-// 불러오기 다이얼로그
-function openLoadDialog() {
-  var siteName = document.body.dataset.siteName;
-  var list = document.getElementById('load-list');
-  list.innerHTML = '<div class="load-empty">불러오는 중...</div>';
-  document.getElementById('load-dialog-bg').classList.remove('hidden');
-  fetch('/api/list?site_name=' + encodeURIComponent(siteName)).then(function(r){return r.json();}).then(function(res) {
-    var reports = (res.reports || []).filter(function(r){ return !r.is_draft; });
-    if (reports.length === 0) {
-      list.innerHTML = '<div class="load-empty">저장된 보고서가 없습니다.</div>';
-      return;
-    }
+function loadReports() {
+  var list = document.getElementById('load-list'); if (!list) return;
+  list.innerHTML = '<div class="load-empty">로딩 중...</div>';
+  fetch('/api/list?site_name=' + encodeURIComponent(SITE_NAME)).then(function(r){return r.json();}).then(function(res){
     list.innerHTML = '';
-    reports.forEach(function(rep) {
-      var div = document.createElement('div');
-      div.className = 'load-item';
-      var nm = document.createElement('div');
-      nm.className = 'l-name';
-      nm.textContent = rep.name;
+    var reports = (res && res.reports) || [];
+    if (reports.length === 0) { list.innerHTML = '<div class="load-empty">저장된 보고서가 없습니다.</div>'; return; }
+    reports.forEach(function(rep){
+      var div = document.createElement('div'); div.className = 'l-item';
+      var nm = document.createElement('span'); nm.className = 'l-name'; nm.textContent = rep.name;
       div.appendChild(nm);
-      var meta = document.createElement('
+      var del = document.createElement('button'); del.type='button'; del.className='l-del'; del.textContent='삭제';
+      del.onclick = function(ev){ ev.stopPropagation(); if (confirm('삭제할까요?')) deleteReport(rep.id); };
+      div.appendChild(del);
+      div.onclick = function(){ loadReport(rep.id); };
+      list.appendChild(div);
+    });
+  }).catch(function(e){ list.innerHTML = '<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
+}
+
+function loadReport(reportId) {
+  fetch('/api/load/' + reportId).then(function(r){return r.json();}).then(function(res){
+    if (res && res.data_json) {
+      try { var data = (typeof res.data_json === 'string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
+      catch(e){ alert('불러오기 실패: ' + e); }
+    } else { alert('불러오기 실패'); }
+  }).catch(function(e){ alert('불러오기 오류: ' + e); });
+}
+
+function deleteReport(reportId) {
+  fetch('/api/delete/' + reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
+}
+</script>
+</body>
+</html>

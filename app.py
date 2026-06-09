@@ -26,7 +26,7 @@ from flask import (
     redirect, url_for, jsonify, flash, session, abort,
 )
 from werkzeug.utils import secure_filename
-from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS
+from report_engine import generate_report_pdf, SITE_PRESETS, B2_ITEMS, B6_ROW_LABELS
 try:
     from flir_decode import decode_flir, get_temp_at_pixel, get_temp_in_box, extract_embedded_visible
     _FLIR_OK = True
@@ -146,6 +146,7 @@ def site_form(site_name):
                            site_name=site_name,
                            preset=preset,
                            b2_items=B2_ITEMS.get(site_name, []),
+                           b6_labels=B6_ROW_LABELS,
                            today=date.today().isoformat())
 
 
@@ -350,6 +351,26 @@ def generate():
             av = (request.form.get(f"b2_action_{it}", "") or "").strip()
             if rv: b2_results[it] = rv
             if av: b2_actions[it] = av
+        # v118 — 붙임4 전압/전류/판정
+        b4_voltages = {}
+        for k in ("rs", "st", "tr"):
+            v = (request.form.get(f"b4_v_{k}", "") or "").strip()
+            if v: b4_voltages[k] = v
+        b4_currents = {}
+        for k in ("r", "s", "t"):
+            v = (request.form.get(f"b4_a_{k}", "") or "").strip()
+            if v: b4_currents[k] = v
+        b4_results = {}
+        for k in ("overheat", "ground", "pt_ct", "bolt", "control", "spd", "meter", "clean"):
+            v = (request.form.get(f"b4_r_{k}", "") or "").strip()
+            if v: b4_results[k] = v
+        # v121 — 붙임6 점검결과 25행 + 종합의견
+        b6_results = []
+        for i in range(1, 26):
+            v = (request.form.get(f"b6_r_{i}", "") or "").strip()
+            b6_results.append(v if v else None)
+        if not any(b6_results): b6_results = None
+        b6_opinion = (request.form.get("b6_opinion", "") or "").strip() or None
         # 페이지별 포함 여부
         include_cover = bool(request.form.get("pdf_include_cover"))
         include_p2    = bool(request.form.get("pdf_include_p2"))
@@ -399,6 +420,11 @@ def generate():
             p3_items=p3_items,
             b2_results=b2_results,
             b2_actions=b2_actions,
+            b4_voltages=b4_voltages,
+            b4_currents=b4_currents,
+            b4_results=b4_results,
+            b6_results=b6_results,
+            b6_opinion=b6_opinion,
             b3_run=b3_run,
             b3_chk=b3_chk,
         )
@@ -670,23 +696,12 @@ def api_photo_get(photo_id):
 @app.route("/api/draft/<site_name>")
 @login_required
 def api_draft(site_name):
-    """site의 최신 draft 1건 반환 (없으면 null)."""
     conn = get_db()
-    row = conn.execute("SELECT * FROM saved_reports WHERE site_name=? AND is_draft=1 "
-                       "ORDER BY id DESC LIMIT 1", (site_name,)).fetchone()
+    row = conn.execute("SELECT * FROM saved_reports WHERE site_name=? AND is_draft=1 ORDER BY id DESC LIMIT 1", (site_name,)).fetchone()
     conn.close()
     if not row:
         return jsonify({"draft": None})
-    return jsonify({
-        "draft": {
-            "id": row["id"],
-            "name": row["name"],
-            "site_name": row["site_name"],
-            "is_draft": True,
-            "data_json": row["data_json"],
-            "updated_at": row["updated_at"],
-        }
-    })
+    return jsonify({"draft": {"id": row["id"], "name": row["name"], "site_name": row["site_name"], "is_draft": True, "data_json": row["data_json"], "updated_at": row["updated_at"]}})
 
 
 @app.route("/api/preview/<site>/<prefix>")
