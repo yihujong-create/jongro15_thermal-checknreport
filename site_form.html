@@ -1,0 +1,2157 @@
+<!doctype html>
+<html lang="ko" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="google" content="notranslate">
+<meta http-equiv="Content-Language" content="ko">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{{ site_name }} 보고서 입력</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=102">
+<style>
+.photo-input input[type="file"]{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
+html,body{overflow-x:hidden!important;max-width:100%!important;}
+.block{width:100%!important;max-width:100%!important;overflow:hidden!important;}
+.meta-row,.measure-row,.photo-row{width:100%!important;max-width:100%!important;box-sizing:border-box!important;}
+/* b8-slot은 <td>로 변경됨 — table-cell 강제 + 25% 폭 */
+table.b8-slots-grid{width:100% !important;max-width:100% !important;table-layout:fixed !important;display:table !important;}
+table.b8-slots-grid > tbody > tr{display:table-row !important;}
+table.b8-slots-grid > tbody > tr > td.b8-slot{width:25% !important;max-width:25% !important;display:table-cell !important;box-sizing:border-box;vertical-align:top;grid-template-columns:none !important;}
+.meta-row>*,.measure-row>*,.photo-row>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.b8-slots-grid > .b8-slot > *{min-width:0;max-width:100%;box-sizing:border-box;}
+label input{width:100%!important;min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+.photo-input{width:100%!important;max-width:100%!important;min-width:0!important;}
+@media (max-width:900px){.photo-row{grid-template-columns:1fr!important;}}
+.photo-preview{position:relative !important;overflow:hidden !important;}
+.photo-preview>img{width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;display:block!important;}
+.photo-preview>.fname-tag{position:absolute;left:0;right:0;bottom:0;background:rgba(46,125,50,0.85);color:white;font-size:10px;text-align:center;padding:2px 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.photo-preview>.btn-delete-photo{position:absolute;top:4px;right:4px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,0.6);color:white;border:2px solid white;font-size:13px;font-weight:700;line-height:1;cursor:pointer;z-index:10;padding:0;display:flex;align-items:center;justify-content:center;}
+.photo-preview>.btn-delete-photo:hover{background:rgba(200,16,46,0.95);}
+@media (max-width:900px){.photo-preview>.btn-delete-photo{width:32px;height:32px;font-size:16px;}}
+
+/* SP 마커 — 진한 회색 십자가 */
+.photo-preview .sp-marker{position:absolute;width:14px;height:14px;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);pointer-events:none;z-index:5;}
+.photo-preview .sp-marker::before,
+.photo-preview .sp-marker::after{content:'';position:absolute;background:white;box-shadow:0 0 0 1px rgba(0,0,0,0.7);}
+.photo-preview .sp-marker::before{width:14px;height:2px;}
+.photo-preview .sp-marker::after{width:2px;height:14px;}
+.photo-preview .sp-marker .sp-label{position:absolute;left:10px;top:-8px;font-size:10px;font-weight:600;color:white;background:rgba(0,0,0,0.45);padding:0 3px;border-radius:2px;white-space:nowrap;text-shadow:0 0 2px rgba(0,0,0,0.95);}
+
+/* BX 박스 마커 — 점선 회색 사각형 */
+.photo-preview .bx-marker{position:absolute;border:2px solid white;background:rgba(255,255,255,0.05);box-shadow:0 0 0 1px rgba(0,0,0,0.7),0 0 0 1px rgba(0,0,0,0.7) inset;pointer-events:none;z-index:5;box-sizing:border-box;}
+/* FLIR Tools 좌측 상단 정보 오버레이 박스 */
+.photo-preview .flir-overlay{position:absolute;top:4px;left:4px;background:rgba(0,0,0,0.4);color:white;font-family:Arial,sans-serif;padding:3px 6px;border-radius:2px;font-size:11px;line-height:1.3;z-index:6;pointer-events:none;max-width:70%;text-shadow:0 1px 2px rgba(0,0,0,0.95),0 0 2px rgba(0,0,0,0.9);}
+.photo-preview .flir-overlay .center-temp{font-size:16px;font-weight:700;display:block;}
+.photo-preview .flir-overlay .center-temp .unit{font-size:10px;font-weight:400;margin-left:2px;}
+.photo-preview .flir-overlay .sp-row,.photo-preview .flir-overlay .bx-row{font-size:11px;display:flex;gap:6px;align-items:baseline;}
+.photo-preview .flir-overlay .sp-row .lbl{font-weight:600;min-width:22px;display:inline-block;}.photo-preview .flir-overlay .bx-row .lbl{font-weight:600;min-width:54px;display:inline-block;}
+.photo-preview .flir-overlay .sp-row .val,.photo-preview .flir-overlay .bx-row .val{font-weight:400;}
+.photo-preview .bx-marker .bx-label{position:absolute;left:-1px;top:-14px;font-size:10px;font-weight:600;color:white;background:rgba(0,0,0,0.45);padding:0 4px;border-radius:2px;white-space:nowrap;text-shadow:0 0 2px rgba(0,0,0,0.95);}
+/* BX 박스 내 핫/콜드 스팟 마커 — 삼각형 */
+.photo-preview .hot-marker,.photo-preview .cold-marker{position:absolute;width:0;height:0;transform:translate(-50%,-50%);pointer-events:none;z-index:6;filter:drop-shadow(0 0 1px rgba(0,0,0,0.95));}
+.photo-preview .hot-marker{border-left:7px solid transparent;border-right:7px solid transparent;border-bottom:12px solid #ff3030;}
+.photo-preview .cold-marker{border-left:7px solid transparent;border-right:7px solid transparent;border-top:12px solid #2080ff;}
+
+
+/* 드래그 중 표시 */
+.photo-preview .bx-drag{position:absolute;border:2px dashed #c8102e;background:rgba(200,16,46,0.1);pointer-events:none;z-index:6;box-sizing:border-box;}
+
+.photo-preview.sp-active,.photo-preview.bx-active{cursor:crosshair;outline:3px dashed #c8102e !important;outline-offset:-3px;animation:pulseActive 1.2s ease-in-out infinite;}
+@keyframes pulseActive{0%,100%{outline-color:#c8102e;}50%{outline-color:#ff6b00;}}
+
+/* 컨트롤 */
+.sp-controls,.bx-controls{display:flex;gap:4px;margin:4px 0;flex-wrap:wrap;}
+.sp-controls button,.bx-controls button{flex:1;min-width:50px;padding:5px 6px;font-size:11px;border:1px solid #3a3a3a;background:white;color:#3a3a3a;border-radius:3px;cursor:pointer;}
+.sp-controls button.active,.bx-controls button.active{background:#3a3a3a;color:white;}
+.sp-controls{margin-top:6px;}
+.bx-controls{margin-top:2px;}
+.flir-status{font-size:10px;color:#2e7d32;margin:3px 0;text-align:center;min-height:14px;}
+.flir-status.error{color:#999;}
+.bx-result{font-size:10px;color:#666;margin:2px 0;text-align:center;}
+/* 온도 보정 오프셋 */
+.temp-offset{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:11px;color:#555;}
+.temp-offset label{font-size:10px;color:#777;margin:0;display:flex;align-items:center;gap:4px;}
+.temp-offset input{width:60px;padding:3px 5px;border:1px solid #c8102e;border-radius:3px;font-size:11px;text-align:center;}
+.temp-offset .unit{font-size:10px;color:#888;}
+.temp-offset .hint{font-size:9px;color:#999;margin-left:4px;}
+/* 붙임3 입력 그리드 */
+.b3-section{padding:8px 0;}
+.b3-h3{font-size:13px;color:#c8102e;margin:10px 0 6px;font-weight:600;border-bottom:1px dashed #ddd;padding-bottom:4px;}
+.b3-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.b3-grid-chk{grid-template-columns:repeat(4,1fr);}
+.b3-grid label{font-size:12px;color:#555;}
+.b3-grid input{padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;width:100%;box-sizing:border-box;margin-top:3px;}
+label input[disabled]{background:#f0f0f0;color:#777;cursor:not-allowed;}
+@media (max-width:700px){.b3-grid{grid-template-columns:repeat(2,1fr);}}
+
+/* === 상단 액션 바 === */
+.sticky-top-wrap{position:fixed;top:0;left:0;right:0;z-index:200;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,0.10);}
+.action-bar{background:#fff;border-bottom:2px solid #c8102e;padding:10px 16px;display:flex;flex-direction:column;gap:8px;}
+.ab-name-row{display:flex;align-items:center;gap:8px;}
+.ab-name-label{font-size:12px;color:#555;font-weight:600;flex-shrink:0;min-width:80px;}
+.ab-name-input{flex:1;padding:7px 10px;border:1px solid #c8102e;border-radius:5px;font-size:13px;min-width:0;}
+.ab-name-input:focus{outline:0;border-color:#a40d25;box-shadow:0 0 0 2px rgba(200,16,46,0.15);}
+.ab-ym-input{max-width:140px;flex:0 0 auto;}
+.pdf-pages-bar{display:flex;align-items:center;gap:8px;padding:4px 10px;background:#fff5f5;border-top:1px solid #e5b4b4;font-size:11px;flex-wrap:nowrap;}
+.pdf-pages-label{font-weight:700;color:#c8102e;font-size:11px;flex-shrink:0;}
+.pdf-page-cb{display:flex;align-items:center;gap:3px;font-size:11px;color:#333;cursor:pointer;font-weight:500;flex-shrink:0;}
+.pdf-page-cb input{margin:0;cursor:pointer;transform:scale(0.95);}
+.pdf-pages-allnone{margin-left:auto;padding:2px 6px;font-size:10px;background:#fff;border:1px solid #c8102e;color:#c8102e;border-radius:3px;cursor:pointer;flex-shrink:0;white-space:nowrap;}
+.pdf-pages-allnone:hover{background:#c8102e;color:#fff;}
+/* 하단 고정 변형 */
+.pdf-pages-bottom{position:fixed;left:0;right:0;bottom:0;z-index:199;box-shadow:0 -2px 8px rgba(0,0,0,0.10);border-top:1px solid #c8102e;background:#fff5f5;}
+/* 본문 하단 패딩 = 고정 바 높이 */
+body{padding-bottom:42px !important;}
+@media (max-width:700px){.pdf-pages-bar{gap:5px;padding:4px 8px;font-size:10px;}.pdf-pages-label{font-size:10px;}.pdf-page-cb{font-size:10px;gap:2px;}.pdf-page-cb input{transform:scale(0.85);}.pdf-pages-allnone{padding:2px 5px;font-size:9px;}}
+.ab-btn-row{display:flex;gap:4px;align-items:center;flex-wrap:nowrap;}
+.ab-btn{padding:5px 8px;border-radius:4px;border:0;font-size:12px;font-weight:600;cursor:pointer;color:#fff;flex:1 1 0;min-width:0;text-align:center;white-space:nowrap;}
+.ab-btn-del{background:#d32f2f;}.ab-btn-del:hover{background:#b71c1c;}
+.ab-btn-save{background:#2e7d32;}.ab-btn-save:hover{background:#1b5e20;}
+.ab-btn-load{background:#1976d2;}.ab-btn-load:hover{background:#1565c0;}
+.ab-btn-new{background:#757575;}.ab-btn-new:hover{background:#555;}
+.ab-btn-pdf{background:#c8102e;}.ab-btn-pdf:hover{background:#8b0a1f;}
+.ab-autosave-status{font-size:10px;color:#666;margin-left:6px;min-width:0;flex-shrink:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ab-autosave-status.saving{color:#ff9800;}
+.ab-autosave-status.saved{color:#2e7d32;}
+.ab-autosave-status.error{color:#c8102e;}
+@media (max-width:700px){.ab-name-row{flex-direction:column;align-items:stretch;gap:3px;}.ab-name-label{min-width:0;font-size:11px;}.ab-name-input{font-size:12px;padding:5px 8px;}.ab-btn{font-size:11px;padding:5px 4px;}.ab-btn-row{gap:3px;}.ab-autosave-status{display:none;}}
+
+/* === 불러오기 다이얼로그 === */
+.load-dialog-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.55);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px;}
+.load-dialog-bg.hidden{display:none;}
+.load-dialog{background:#fff;border-radius:10px;max-width:520px;width:100%;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,0.25);}
+.load-dialog-header{padding:14px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between;}
+.load-dialog-header h3{font-size:16px;color:#c8102e;margin:0;}
+.ab-btn-close{background:transparent;border:0;font-size:18px;color:#999;cursor:pointer;padding:4px 8px;}
+.load-dialog-list{overflow-y:auto;padding:8px 0;flex:1;}
+.load-item{padding:10px 18px;border-bottom:1px solid #f4f4f4;display:flex;align-items:center;gap:10px;cursor:pointer;}
+.load-item:hover{background:#fafafa;}
+.load-item .l-name{flex:1;font-size:13px;color:#222;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.load-item .l-meta{font-size:11px;color:#888;flex-shrink:0;}
+.load-item .l-draft-badge{font-size:10px;background:#ff9800;color:#fff;padding:1px 6px;border-radius:8px;flex-shrink:0;}
+.load-item .l-del{background:transparent;border:1px solid #c8102e;color:#c8102e;border-radius:4px;padding:2px 8px;font-size:11px;cursor:pointer;flex-shrink:0;}
+.load-item .l-del:hover{background:#c8102e;color:#fff;}
+.load-empty{padding:30px 18px;text-align:center;color:#999;font-size:13px;}
+</style>
+</head>
+<body data-site-name="{{ site_name }}" translate="no" class="notranslate">
+{#- 실화상용 (촬영+갤러리 선택 가능) -#}
+{%- macro photo_input(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" capture="environment" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+{#- 열화상용 (capture 없음 → 모바일에서도 갤러리 선택) -#}
+{%- macro photo_input_ir(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">🔥</span><span class="btn-txt">사진 선택</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+{#- 붙임8 점검사진용 (capture 없음 → 모바일에서 OS 선택창: 카메라/갤러리 모두) -#}
+{%- macro photo_input_b8(name, label) -%}
+<div class="photo-input">
+<span class="photo-label">{{ label }}</span>
+<label class="btn-photo-single" for="file_{{ name }}"><span class="btn-icon">📷</span><span class="btn-txt">사진 추가/선택</span></label>
+<input type="file" id="file_{{ name }}" name="{{ name }}" accept="image/*" onchange="showPreview('{{ name }}', this)">
+<div class="photo-preview" id="preview_{{ name }}">선택된 파일 없음</div>
+</div>
+{%- endmacro -%}
+
+<div class="sticky-top-wrap">
+<header>
+<h1>{{ site_name }}</h1>
+<a class="back-link" href="{{ url_for('index') }}">← 다른 현장 선택</a>
+</header>
+
+<!-- 상단 액션 바 — 삭제/저장/불러오기/새로작성/PDF 생성 -->
+<div class="action-bar" id="action-bar">
+  <div class="ab-name-row">
+    <label class="ab-name-label">보고서 이름</label>
+    <input type="text" id="report-name" class="ab-name-input" placeholder="예: 2026-06-03 조달청 청사 분기점검">
+  </div>
+
+  <div class="ab-btn-row">
+    <button type="button" class="ab-btn ab-btn-del" onclick="confirmDeleteCurrent()" title="현재 보고서 삭제">🗑️ 삭제</button>
+    <button type="button" class="ab-btn ab-btn-save" onclick="saveReport()" title="저장">💾 저장</button>
+    <button type="button" class="ab-btn ab-btn-load" onclick="openLoadDialog()" title="불러오기">📂 부름</button>
+    <button type="button" class="ab-btn ab-btn-new" onclick="confirmNewReport()" title="새로 작성">📝 NEW</button>
+    <button type="button" class="ab-btn ab-btn-pdf" onclick="document.getElementById('report-form').requestSubmit ? document.getElementById('report-form').requestSubmit() : document.getElementById('report-form').submit()" title="PDF 생성">📄 PDF</button>
+    <span class="ab-autosave-status" id="autosave-status"></span>
+  </div>
+</div>
+</div><!-- /sticky-top-wrap -->
+
+<!-- 화면 하단 고정 — PDF 포함 페이지 체크박스 -->
+<div class="pdf-pages-bar pdf-pages-bottom">
+  <span class="pdf-pages-label">PDF:</span>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_cover" form="report-form" value="1" checked> 표지</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p2" form="report-form" value="1" checked> 2P</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p3" form="report-form" value="1" checked> 3P</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_p4" form="report-form" value="1" checked> 붙임1</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b2" form="report-form" value="1" checked> 붙임2</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b3" form="report-form" value="1" checked> 붙임3</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b4" form="report-form" value="1" checked> 붙임4</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b5" form="report-form" value="1" checked> 붙임5</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b6" form="report-form" value="1" checked> 붙임6</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b7" form="report-form" value="1" checked> 붙임7</label>
+  <label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b8" form="report-form" value="1" checked> 붙임8</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b9" form="report-form" value="1"> 붙임9</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b10" form="report-form" value="1"> 붙임10</label>
+<label class="pdf-page-cb"><input type="checkbox" name="pdf_include_b11" form="report-form" value="1"> 붙임11</label>
+  <button type="button" class="pdf-pages-allnone" onclick="togglePdfPagesAll()">전체</button>
+</div>
+
+<!-- 불러오기 다이얼로그 -->
+<div class="load-dialog-bg hidden" id="load-dialog-bg" onclick="if(event.target===this)closeLoadDialog()">
+  <div class="load-dialog">
+    <div class="load-dialog-header">
+      <h3>저장된 보고서 불러오기</h3>
+      <button type="button" class="ab-btn-close" onclick="closeLoadDialog()">✕</button>
+    </div>
+    <div class="load-dialog-list" id="load-list">
+      <div class="load-empty">불러오는 중...</div>
+    </div>
+  </div>
+</div>
+
+<form id="report-form" action="{{ url_for('generate') }}" method="post" enctype="multipart/form-data">
+<input type="hidden" name="site_name" value="{{ site_name }}">
+<input type="hidden" name="markers_json" id="markers_json" value="{}">
+<main>
+<!-- p1 표지 + p2 점검사항/결과 -->
+<section class="block-section">
+<h2>📘 표지 + 페이지 2 (1~2페이지)</h2>
+<p class="hint">점검일 입력 시 연·월 자동 동기화. 점검사항·결과 비워두면 기본값 사용. 1~6 기본 + 7~10 추가 가능.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">표지/2P</span><span class="block-title">{{ site_name }}</span></div>
+<div class="meta-row">
+<label>현장명<input type="text" value="{{ site_name }}" disabled></label>
+<label>점검일<input type="date" id="inspection-date-only" form="report-form"></label>
+<label>점검시 (24h)<select id="inspection-hour" form="report-form" style="width:100%;padding:6px 8px;border:1px solid #ccc;border-radius:4px;font-size:13px;height:32px;margin-top:4px;box-sizing:border-box;">
+<option value="">-시-</option>
+<option value="0">0시</option><option value="1">1시</option><option value="2">2시</option><option value="3">3시</option>
+<option value="4">4시</option><option value="5">5시</option><option value="6">6시</option><option value="7">7시</option>
+<option value="8">8시</option><option value="9">9시</option><option value="10">10시</option><option value="11">11시</option>
+<option value="12">12시</option><option value="13">13시</option><option value="14">14시</option><option value="15">15시</option>
+<option value="16">16시</option><option value="17">17시</option><option value="18">18시</option><option value="19">19시</option>
+<option value="20">20시</option><option value="21">21시</option><option value="22">22시</option><option value="23">23시</option>
+</select><input type="hidden" id="inspection-date" name="inspection_date_raw" form="report-form"><input type="hidden" id="inspection-date-fmt" name="inspection_date" form="report-form" value=""></label>
+<label>연·월 (자동)<input type="text" id="cover-ym" name="year_month" form="report-form" placeholder="예: 2026.06" maxlength="8"></label>
+</div>
+<h3 class="b3-h3">주요 점검사항 (1~10, 비워두면 기본값)</h3>
+<div class="b3-grid">
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_1_show" form="report-form" value="1" checked>1</span><input type="text" name="p2_item_1" form="report-form" placeholder="1. 특고압 전기설비 외관 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_2_show" form="report-form" value="1" checked>2</span><input type="text" name="p2_item_2" form="report-form" placeholder="2. 적외선 열화상 진단"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_3_show" form="report-form" value="1" checked>3</span><input type="text" name="p2_item_3" form="report-form" placeholder="3. 모듈 외관 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_4_show" form="report-form" value="1" checked>4</span><input type="text" name="p2_item_4" form="report-form" placeholder="4. 전압, 전류, 발전량 등 측정"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_5_show" form="report-form" value="1" checked>5</span><input type="text" name="p2_item_5" form="report-form" placeholder="5. 인버터 판넬 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_6_show" form="report-form" value="1" checked>6</span><input type="text" name="p2_item_6" form="report-form" placeholder="6. 접속반 점검"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_7_show" form="report-form" value="1" checked>7</span><input type="text" name="p2_item_7" form="report-form" placeholder="(추가 항목 7)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_8_show" form="report-form" value="1" checked>8</span><input type="text" name="p2_item_8" form="report-form" placeholder="(추가 항목 8)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_9_show" form="report-form" value="1" checked>9</span><input type="text" name="p2_item_9" form="report-form" placeholder="(추가 항목 9)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_item_10_show" form="report-form" value="1" checked>10</span><input type="text" name="p2_item_10" form="report-form" placeholder="(추가 항목 10)"></label>
+</div>
+<h3 class="b3-h3">점검결과 및 종합의견 (1-1~10-1, 비워두면 기본값)</h3>
+<div class="b3-grid">
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_1_show" form="report-form" value="1" checked>1-1</span><input type="text" name="p2_result_1" form="report-form" placeholder="1-1. 외관 이상없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_2_show" form="report-form" value="1" checked>2-1</span><input type="text" name="p2_result_2" form="report-form" placeholder="2-1. 적외선 열화상진단결과 중점적으로 단자체크 조임부분 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_3_show" form="report-form" value="1" checked>3-1</span><input type="text" name="p2_result_3" form="report-form" placeholder="3-1. 모듈외관이 손상되거나 오염된 부분은 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_4_show" form="report-form" value="1" checked>4-1</span><input type="text" name="p2_result_4" form="report-form" placeholder="4-1. 전압 전류, 발전량 측정결과 현장 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_5_show" form="report-form" value="1" checked>5-1</span><input type="text" name="p2_result_5" form="report-form" placeholder="5-1. 인버터 판넬 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_6_show" form="report-form" value="1" checked>6-1</span><input type="text" name="p2_result_6" form="report-form" placeholder="6-1. 접속반 이상 없음"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_7_show" form="report-form" value="1" checked>7-1</span><input type="text" name="p2_result_7" form="report-form" placeholder="(추가 의견 7-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_8_show" form="report-form" value="1" checked>8-1</span><input type="text" name="p2_result_8" form="report-form" placeholder="(추가 의견 8-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_9_show" form="report-form" value="1" checked>9-1</span><input type="text" name="p2_result_9" form="report-form" placeholder="(추가 의견 9-1)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p2_result_10_show" form="report-form" value="1" checked>10-1</span><input type="text" name="p2_result_10" form="report-form" placeholder="(추가 의견 10-1)"></label>
+</div>
+<h3 class="b3-h3">붙임 서류 목록 (페이지 3, 1~11, 비워두면 기본값)</h3>
+<div class="b3-grid">
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_1_show" form="report-form" value="1" checked>1</span><input type="text" name="p3_item_1" form="report-form" placeholder="1. 안전진단장비 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_2_show" form="report-form" value="1" checked>2</span><input type="text" name="p3_item_2" form="report-form" placeholder="2. 송 수전설비 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_3_show" form="report-form" value="1" checked>3</span><input type="text" name="p3_item_3" form="report-form" placeholder="3. 인버터 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_4_show" form="report-form" value="1" checked>4</span><input type="text" name="p3_item_4" form="report-form" placeholder="4. ACB PANEL 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_5_show" form="report-form" value="1" checked>5</span><input type="text" name="p3_item_5" form="report-form" placeholder="5. 접속반 및 모듈 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_6_show" form="report-form" value="1" checked>6</span><input type="text" name="p3_item_6" form="report-form" placeholder="6. 태양광발전설비 점검기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_7_show" form="report-form" value="1" checked>7</span><input type="text" name="p3_item_7" form="report-form" placeholder="7. 열화상분포 측정기록표 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_8_show" form="report-form" value="1" checked>8</span><input type="text" name="p3_item_8" form="report-form" placeholder="8. 점검사진대지 1부"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_9_show" form="report-form" value="1" checked>9</span><input type="text" name="p3_item_9" form="report-form" placeholder="9. 전기설비 절연저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_10_show" form="report-form" value="1" checked>10</span><input type="text" name="p3_item_10" form="report-form" placeholder="10. 전기설비 접지저항 측정기록표 1부 (비축/티튜브)"></label>
+<label><span style="display:flex;align-items:center;gap:4px;"><input type="checkbox" name="p3_item_11_show" form="report-form" value="1" checked>11</span><input type="text" name="p3_item_11" form="report-form" placeholder="11. 변압기 점검기록표 1부 (비축/티튜브)"></label>
+</div>
+</div>
+</section>
+
+<!-- 붙임1 (보기 전용) -->
+<section class="block-section">
+<h2>📎 붙임1 — 안전진단장비 (보기 전용)</h2>
+<p class="hint">PDF 원본 그대로 출력됨. 수정 불가.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임1</span><span class="block-title">안전진단장비</span></div>
+<div class="b3-section" style="text-align:center;">
+<img src="{{ url_for('api_preview', site=site_name, prefix='b1') }}" alt="붙임1 미리보기" style="max-width:100%;border:1px solid #ddd;border-radius:4px;">
+</div>
+</div>
+</section>
+
+<!-- 붙임2 (편집) -->
+<section class="block-section">
+<h2>📑 붙임2 — 송 수전설비 점검기록표</h2>
+<p class="hint">점검결과 기본 ○. X 선택 시 PDF 반영. 조치사항 비워두면 빈칸.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임2</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">송 수전설비 점검기록표 (PDF 양식 동일)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;width:90px;">구 분</th>
+<th style="border:1px solid #999;padding:6px;width:140px;">점검항목</th>
+<th style="border:1px solid #999;padding:6px;width:80px;">점검결과</th>
+<th style="border:1px solid #999;padding:6px;width:100px;">점검기준</th>
+<th style="border:1px solid #999;padding:6px;">조 치 사 항</th>
+</tr></thead>
+<tbody>
+{% set b2_specs = {
+"조달청 청사": [
+  ["저압설비","CT","육안,열화상",""],
+  ["","MCCB","육안,열화상",""],
+  ["","SPD","육안,열화상",""],
+  ["","INVERTER","육안,열화상",""],
+  ["","전선,케이블","육안,열화상","세부점검사항은 접속반 모듈 점검기록표 참조"],
+  ["","기타설비","육안,열화상",""]
+],
+"비축기지": [
+  ["특고압설비","CH","육안,열화상",""],
+  ["","LBS","육안,열화상",""],
+  ["","LA","육안,열화상",""],
+  ["","MOF(수전용)","육안,열화상",""],
+  ["","MOF(송전용)","육안,열화상",""],
+  ["","PF","육안,열화상",""],
+  ["","PT","육안,열화상",""],
+  ["","CT","육안,열화상",""],
+  ["","VCB","육안,열화상",""],
+  ["","TR","육안,열화상",""],
+  ["","큐비클","육안",""],
+  ["","출입문잠금시설","육안",""],
+  ["","계전기","육안,열화상",""],
+  ["","ACB","육안,열화상","세부점검사항은 ACB 점검기록표 참조"],
+  ["저압설비","INVERTER","육안,열화상","세부점검사항은 인버터 점검기록표 참조"],
+  ["","CONDENSER","육안,열화상",""],
+  ["","축전지","육안,열화상",""],
+  ["","MCCB","육안,열화상",""],
+  ["","전선,케이블","육안,열화상",""],
+  ["","정류기반","육안,열화상",""],
+  ["","기타시설","육안,열화상",""]
+]
+} %}
+{% set b2_rows = b2_specs.get(site_name, b2_specs.get("비축기지") if site_name == "티튜브" else []) %}
+{% for row in b2_rows %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[0] }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[1] }}</td>
+<td style="border:1px solid #999;padding:2px;text-align:center;">
+  <select name="b2_result_{{ row[1] }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">○</option><option value="X">X</option>
+  </select>
+</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;font-size:11px;">{{ row[2] }}</td>
+<td style="border:1px solid #999;padding:2px;">
+  <input type="text" name="b2_action_{{ row[1] }}" form="report-form" value="{{ row[3] }}" placeholder="조치사항" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+</td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">점검결과 표시: 적합 ○ / 부적합 X</p>
+</div>
+</div>
+</section>
+
+<!-- 붙임4 (편집) -->
+<section class="block-section">
+<h2>붙임3 — 인버터 점검기록표</h2>
+<p class="hint">기본사항은 사이트 PRESET 고정. 운전상황과 점검결과만 입력하세요.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임3</span><span class="block-title">인버터 (INV-1)</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="4" style="border:1px solid #999;padding:6px;">인버터 점검기록표 — INV-1</th>
+</tr></thead>
+<tbody>
+<tr><th style="border:1px solid #999;padding:6px;background:#f5f5f5;width:90px;" rowspan="7">운전<br>상황</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:160px;">DCV (V)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_dcv" form="report-form" placeholder="예: 667.27" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">DCA (A)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_dca" form="report-form" placeholder="예: 69.91" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">ACV (V)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_acv" form="report-form" placeholder="예: 399.38" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">ACA (A)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_aca" form="report-form" placeholder="예: 66.54" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">KW</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_kw" form="report-form" placeholder="예: 47" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">HZ</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_hz" form="report-form" placeholder="예: 59.96" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">누적발전량 (MWh)</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_cum_mwh" form="report-form" placeholder="예: 862.698" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th style="border:1px solid #999;padding:6px;background:#f5f5f5;" rowspan="8">점검<br>결과</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">과열 유무</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_overheat" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">접지선 접속</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_ground" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">입출력 전압적정</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_voltage" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">출력 과전류 유무</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_overcurrent" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">FAN 동작상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_fan" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">SPD 상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_spd" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">필터 상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_filter" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">내부청결상태</td>
+<td colspan="2" style="border:1px solid #999;padding:2px;"><input type="text" name="b3_chk_clean" form="report-form" value="양호" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+</tbody></table>
+</div>
+</div>
+</div>
+</section>
+
+
+<section class="block-section">
+<h2>📑 붙임4 — ACB/MCCB-PANEL 점검기록표</h2>
+<p class="hint">비워두면 원본 값 유지. 입력 시 PDF에 새 값으로 교체.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임4</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:12px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="3" style="border:1px solid #999;padding:6px;">{{ "MCCB-PANEL" if site_name == "조달청 청사" else "ACB-PANEL" }} 점검기록표</th>
+</tr></thead>
+<tbody>
+<tr><th rowspan="3" style="border:1px solid #999;padding:6px;background:#f5f5f5;width:90px;">전 압<br>(V)</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:120px;">R-S</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_rs" form="report-form" placeholder="예: 397.5V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">S-T</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_st" form="report-form" placeholder="예: 399.38V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">T-R</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_v_tr" form="report-form" placeholder="예: 393.37V" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th rowspan="3" style="border:1px solid #999;padding:6px;background:#f5f5f5;">전 류<br>(A)</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">R</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_r" form="report-form" placeholder="예: 66.54A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">S</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_s" form="report-form" placeholder="예: 67.86A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">T</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b4_a_t" form="report-form" placeholder="예: 68.36A" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"></td></tr>
+<tr><th rowspan="8" style="border:1px solid #999;padding:6px;background:#f5f5f5;">점검<br>결과<br>·<br>판정</th>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">과열 유무</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_overheat" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">접지선 접속</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_ground" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">PT 및 CT상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_pt_ct" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">볼트풀림유무</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_bolt" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">제어회로</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_control" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">SPD상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_spd" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">계측기표시</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_meter" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">내부청결상태</td>
+<td style="border:1px solid #999;padding:2px;"><select name="b4_r_clean" form="report-form" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;box-sizing:border-box;"><option value="">(원본)</option><option value="양호" selected>양호</option><option value="불량">불량</option></select></td></tr>
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">* 본 전압/전류의 측정치는 측정시간 차이와 일조량 변화로 인버터 출력값과 다소 다를 수 있음.</p>
+</div>
+</div>
+</section>
+
+<!-- 붙임5 (편집) -->
+<section class="block-section">
+<h2>📑 붙임5 — 접속반 및 모듈 점검기록표</h2>
+<p class="hint">접속반(MJB)별 채널 전류값(A) 및 상태점검(○/X//) 셀 단위 편집. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임5</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">접속반별 전류측정 (A)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;">CH</th>
+{% for mjb in b5_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for ch in b5_struct.get('channels', []) %}
+<tr><td style="border:1px solid #ddd;padding:4px;text-align:center;background:#fafafa;">{{ ch }}</td>
+{% for mjb in b5_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><input type="text" name="b5_curr_{{ ch }}_{{ loop.index0 }}" form="report-form" placeholder="A" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<h3 class="b3-h3">접속반별 상태점검 (○/X//)</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;text-align:left;">상태</th>
+{% for mjb in b5_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for st in b5_struct.get('states', []) %}
+{% set st_idx = loop.index0 %}
+<tr><td style="border:1px solid #ddd;padding:4px;background:#fafafa;">{{ st }}</td>
+{% for mjb in b5_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><select name="b5_state_{{ st_idx }}_{{ loop.index0 }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+  <option value="O" selected>○</option><option value="X">X</option><option value="/">/</option>
+</select></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+</div>
+</div>
+</section>
+
+{% if b5p2_struct.get('mjbs') %}
+<!-- 붙임5 페이지 2 (비축/티튜브만) -->
+<section class="block-section">
+<h2>📑 붙임5 (페이지 2) — 접속반 및 모듈 점검기록표 (2/2)</h2>
+<p class="hint">추가 접속반(MJB-5/6/7/8) 전류측정 및 상태점검. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임5-2</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">접속반별 전류측정 (A) — 추가 MJB</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;">CH</th>
+{% for mjb in b5p2_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for ch in b5p2_struct.get('channels', []) %}
+<tr><td style="border:1px solid #ddd;padding:4px;text-align:center;background:#fafafa;">{{ ch }}</td>
+{% for mjb in b5p2_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><input type="text" name="b5p2_curr_{{ ch }}_{{ loop.index0 }}" form="report-form" placeholder="A" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<h3 class="b3-h3">접속반별 상태점검 (○/X//) — 추가 MJB</h3>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#f5f5f5;"><th style="border:1px solid #ddd;padding:4px;text-align:left;">상태</th>
+{% for mjb in b5p2_struct.get('mjbs', []) %}<th style="border:1px solid #ddd;padding:4px;">{{ mjb }}</th>{% endfor %}
+</tr></thead>
+<tbody>
+{% for st in b5p2_struct.get('states', []) %}
+{% set st_idx = loop.index0 %}
+<tr><td style="border:1px solid #ddd;padding:4px;background:#fafafa;">{{ st }}</td>
+{% for mjb in b5p2_struct.get('mjbs', []) %}
+<td style="border:1px solid #ddd;padding:2px;"><select name="b5p2_state_{{ st_idx }}_{{ loop.index0 }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+  <option value="O" selected>○</option><option value="X">X</option><option value="/">/</option>
+</select></td>
+{% endfor %}
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">* 일사량에 따라 전류치가 크게 변경될 수 있으니 참고바랍니다.</p>
+</div>
+</div>
+</section>
+{% endif %}
+
+<!-- 붙임6 (편집) -->
+<section class="block-section">
+<h2>📑 붙임6 — 태양광발전설비 점검기록표</h2>
+<p class="hint">기본값 = 원본 PDF 값 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임6</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<h3 class="b3-h3">25행 점검결과 (PDF 양식 동일 구조)</h3>
+<p class="hint">기본값 = 원본 유지. 변경 시 ○(적합)/X(부적합)/(해당없음) 선택.</p>
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;width:40px;">NO</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">항 목</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">소분류</th>
+<th style="border:1px solid #999;padding:6px;">점검 사항</th>
+<th style="border:1px solid #999;padding:6px;width:90px;">점검결과</th>
+</tr></thead>
+<tbody>
+{% set b6_table = [
+  ["1","태양전지","출력","일사량 대비 안정적 출력(월간 발전량 등) 확인"],
+  ["","","외관","변색(황변, 백화, Glass, Back sheet 등), 변형 여부 확인"],
+  ["","","","적외선열화상 측정시 핫스팟 등 열화현상 확인"],
+  ["","","","프레임 부식, 손상(파손) 확인"],
+  ["","","음영","태양전지 어레이 설치장소의 주변으로 인한 음영 발생 확인"],
+  ["","","본딩","태양전지모듈과 지지대의 전기적 접속 상태 이상 여부 확인"],
+  ["2","지지물","기초상태","기초부위, 지지대 등의 결속 및 정착상태 이상여부 확인"],
+  ["","","볼트체결상태","용융아연도금 이상 재질 볼트 너트사용과 녹발생, 볼트체결 상태 등 이상 여부"],
+  ["","","접속함","외함의 부식 및 손상, 접속점 및 부속품 발열 등 확인"],
+  ["","","설치상태","지지물이 충격 등에 대하여 안전한 상태인지 확인"],
+  ["","","도금상태","아연도금 상태, 절단면 또는 용접부분 등 녹 방지 유지 등 확인"],
+  ["","","고정","모듈 간의 직렬배선은 바람에 흔들리지 않도록 고정 확인"],
+  ["3","전선로","전선연결","스트링별 DC케이블 및 간선기준 접속부 발열등 이상여부 확인"],
+  ["","","커넥터","모듈, 출력단자, 파손 등 습기 및 빗물 침투방지 구조 확인"],
+  ["4","전력변환장치 및 보호장치","외관","외함 손상, 도금상태 등 변형 여부 확인"],
+  ["","","작동상태","소음, 진동, 냄새 등과 같이 평소와 다른 현상 발생 확인"],
+  ["","","전선로","배선의 손상, 접속단자(AC, DC) 체결, 관통부분 마감처리 확인"],
+  ["","","설치환경","제조사가 제시한 설치환경(온도, 습도, 청소상태) 준수 여부 확인"],
+  ["","","보호값 설정","저주파수 설정 등 인버터 전체 보호요소 및 계전기 설정치 적정 여부"],
+  ["5","주변환경","부지안전","배수시설 맨홀 및 배수로 정비상태 확인"],
+  ["","","","지지대 또는 지반의 침하가 없으며, 지지대-지반의 고정상태 확인"],
+  ["","","","부지 내 지반 침하, 토사유출 등 현상의 흔적 유무"],
+  ["","","","축대의 균열, 누수 등 자연재해 대비 이상 여부 확인"],
+  ["6","기타","구조물 등","지붕과 기초, 구조물은 헐거움 없이 고정되었는지 확인"],
+  ["","","","별도의 추가 하중 적재 등 위험물 설치 여부 등 확인"]
+] %}
+{% for row in b6_table %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row[0] }}</td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[1] }}</td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[2] }}</td>
+<td style="border:1px solid #999;padding:6px;font-size:11px;">{{ row[3] }}</td>
+{% if loop.index == 2 %}
+<td rowspan="3" style="border:1px solid #999;padding:2px;vertical-align:middle;">
+  <select id="b6_outer_unified" form="report-form" onchange="syncB6Outer(this)" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">(유지)</option>
+    <option value="O">○</option>
+    <option value="X">X</option>
+    <option value="/">/</option>
+  </select>
+  <input type="hidden" name="b6_r_2" id="b6_r_2_h" form="report-form">
+  <input type="hidden" name="b6_r_3" id="b6_r_3_h" form="report-form">
+  <input type="hidden" name="b6_r_4" id="b6_r_4_h" form="report-form">
+</td>
+{% elif loop.index == 3 or loop.index == 4 %}
+{% else %}
+<td style="border:1px solid #999;padding:2px;">
+  <select name="b6_r_{{ loop.index }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">(유지)</option>
+    <option value="O">○</option>
+    <option value="X">X</option>
+    <option value="/">/</option>
+  </select>
+</td>
+{% endif %}
+</tr>
+{% endfor %}
+<script>
+function syncB6Outer(sel){
+  var v = sel.value;
+  document.getElementById('b6_r_2_h').value = v;
+  document.getElementById('b6_r_3_h').value = v;
+  document.getElementById('b6_r_4_h').value = v;
+}
+</script>
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">[비고] 점검결과는 ○(적합), ×(부적합), /(해당없음) 으로 표기</p>
+<h3 class="b3-h3">종합의견</h3>
+<label style="display:block;">종합의견 (페이지 하단)
+<textarea name="b6_opinion" form="report-form" rows="2" placeholder="예: 절연 및 접지저항 측정 - 이상 없음" style="width:100%;padding:6px;border:1px solid #ccc;border-radius:4px;"></textarea>
+</label>
+</div>
+</div>
+</section>
+
+<script>
+// 점검일시(datetime-local) → 한글 포맷("2026년 06월 03일 14:30") + 연·월 자동 동기화
+(function() {
+  function _onChange() {
+    var dt = document.getElementById('inspection-date');
+    var fmt = document.getElementById('inspection-date-fmt');
+    var ym = document.getElementById('cover-ym');
+    if (!dt) return;
+    // v111 — date input + hour select 조합 → 24시간 강제
+    var dateInp = document.getElementById('inspection-date-only');
+    var hourSel = document.getElementById('inspection-hour');
+    if (!dateInp) return;
+    var dv = (dateInp.value || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!dv) { if (fmt) fmt.value = ''; return; }
+    var yy = dv[1], mm = dv[2], dd = dv[3];
+    var hh24 = (hourSel && hourSel.value !== '') ? ('00' + parseInt(hourSel.value, 10)).slice(-2) : '';
+    // raw ISO (모니터링 API용)
+    if (dt) dt.value = yy + '-' + mm + '-' + dd + (hh24 ? 'T' + hh24 + ':00' : '');
+    // 한글 포맷
+    var korText = yy + '년 ' + mm + '월 ' + dd + '일';
+    if (hh24) korText += ' ' + parseInt(hh24, 10) + '시 00분';
+    if (fmt) fmt.value = korText;
+    if (ym) ym.value = yy + '.' + mm;
+  }
+  document.addEventListener('DOMContentLoaded', function() {
+    var dateInp = document.getElementById('inspection-date-only');
+    var hourSel = document.getElementById('inspection-hour');
+    if (dateInp) {
+      dateInp.addEventListener('change', _onChange);
+      dateInp.addEventListener('input', _onChange);
+    }
+    if (hourSel) hourSel.addEventListener('change', _onChange);
+  });
+})();
+</script>
+
+
+
+<section class="block-section">
+<h2>붙임7 — 적외선 열화상분포 측정기록표</h2>
+<p class="hint">총 {{ preset.blocks|length }}개 블록. 열화상 사진을 추가하면 SP/Bx 마커로 자동 입력되며, 직접 입력도 가능합니다.</p>
+{% for blk in preset.blocks %}
+<div class="block">
+<div class="block-header">
+<span class="block-num">블록 {{ loop.index }}</span>
+<span class="block-title">{{ blk.target }} — {{ blk.upper_label }}{% if blk.lower_label %} / {{ blk.lower_label }}{% endif %}</span>
+</div>
+<div class="meta-row">
+<label>측정대상<input type="text" name="target{{ loop.index0 }}" value="{{ blk.target }}"></label>
+<label>사용전압<input type="text" name="voltage{{ loop.index0 }}" value="{{ blk.voltage }}"></label>
+<label>측정조건<input type="text" name="condition{{ loop.index0 }}" value="{{ blk.condition }}"></label>
+</div>
+<div class="measure-row">
+<label class="part-label">부위별 측정 온도 (상단)<input type="text" name="u_label{{ loop.index0 }}" value="{{ blk.upper_label }}"></label>
+<label>Point 1<input type="number" step="0.1" name="u{{ loop.index0 }}_p0" value=""></label>
+<label>Point 2<input type="number" step="0.1" name="u{{ loop.index0 }}_p1" value=""></label>
+<label>Point 3<input type="number" step="0.1" name="u{{ loop.index0 }}_p2" value=""></label>
+</div>
+<div class="measure-row {% if not blk.lower_label %}hidden{% endif %}">
+<label class="part-label">부위별 측정 온도 (하단)<input type="text" name="l_label{{ loop.index0 }}" value="{{ blk.lower_label }}"></label>
+<label>Point 1<input type="number" step="0.1" name="l{{ loop.index0 }}_p0" value=""></label>
+<label>Point 2<input type="number" step="0.1" name="l{{ loop.index0 }}_p1" value=""></label>
+<label>Point 3<input type="number" step="0.1" name="l{{ loop.index0 }}_p2" value=""></label>
+</div>
+<div class="photo-row">
+{{ photo_input('photo_' ~ loop.index0 ~ '_uv', '상단 실화상') }}
+{{ photo_input_ir('photo_' ~ loop.index0 ~ '_ut', '상단 열화상') }}
+{% if blk.lower_label %}
+{{ photo_input('photo_' ~ loop.index0 ~ '_lv', '하단 실화상') }}
+{{ photo_input_ir('photo_' ~ loop.index0 ~ '_lt', '하단 열화상') }}
+{% endif %}
+</div>
+</div>
+{% endfor %}
+</section>
+
+<section class="b8-section">
+<h2>붙임8 — 점검사진대지 ({{ preset.b8_captions|length }}페이지)</h2>
+{% for page in preset.b8_captions %}
+<div class="block">
+<div class="block-header"><span class="block-num">붙임8 {{ loop.index }}페이지</span></div>
+{% set page_idx = loop.index0 %}
+<table class="b8-slots-grid" style="width:100%; table-layout:fixed; border-collapse:separate; border-spacing:6px;">
+{% for row in page|batch(4, '') %}
+<tr>
+{% for cap in row %}
+{% if cap is string %}
+<td class="b8-slot" style="width:25%; vertical-align:top; padding:4px; border:1px dotted #ddd; box-sizing:border-box;">
+<label class="b8-caption" style="display:block; font-size:11px;">캡션<input type="text" name="b8_{{ page_idx }}_{{ loop.index0 }}_caption" value="{{ cap }}" style="width:100%; box-sizing:border-box;"></label>
+{{ photo_input_b8('b8_' ~ page_idx ~ '_' ~ loop.index0 ~ '_photo', '점검사진') }}
+</td>
+{% else %}
+<td style="width:25%;"></td>
+{% endif %}
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+</div>
+{% endfor %}
+</section>
+
+{% if b9_data %}
+<!-- 붙임9 — 절연저항 측정기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임9 — 전기설비 절연저항 측정기록표</h2>
+<p class="hint">측정치/결과 편집 가능. 빈 값 = 원본 PDF 값 유지. (PDF 양식 동일 구조)</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임9</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;">점검대상</th>
+<th style="border:1px solid #999;padding:6px;">개방전압 (V)</th>
+<th style="border:1px solid #999;padding:6px;">기준치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">측정치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">결 과</th>
+<th style="border:1px solid #999;padding:6px;">비 고</th>
+</tr></thead>
+<tbody>
+{% for row in b9_data %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.target }}<br><span style="font-size:10px;color:#666;">{{ row.desc }}</span></td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.v }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.std }}</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b9_meas_{{ loop.index0 }}" form="report-form" placeholder="{{ row.meas }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b9_result_{{ loop.index0 }}" form="report-form" placeholder="{{ row.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">&nbsp;</td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">- 접속반 채널별로 측정</p>
+<h3 class="b3-h3" style="margin-top:12px;">사진 (1장)</h3>
+<table class="b8-slots-grid" style="width:100%;table-layout:fixed;border-collapse:separate;border-spacing:6px;">
+<tbody><tr>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b9_caption" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b9_photo', '붙임9 사진') }}
+</td>
+<td style="width:75%;"></td>
+</tr></tbody></table>
+</div>
+</div>
+</section>
+
+<!-- 붙임10 — 접지저항 측정기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임10 — 전기설비 접지저항 측정기록표</h2>
+<p class="hint">측정치/결과 편집 가능. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임10</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th style="border:1px solid #999;padding:6px;">점검대상</th>
+<th style="border:1px solid #999;padding:6px;">개방전압 (V)</th>
+<th style="border:1px solid #999;padding:6px;">기준치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">측정치 (㏁)</th>
+<th style="border:1px solid #999;padding:6px;">결 과</th>
+<th style="border:1px solid #999;padding:6px;">비 고</th>
+</tr></thead>
+<tbody>
+{% for row in b10_data %}
+<tr>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.target }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.v }}</td>
+<td style="border:1px solid #999;padding:6px;text-align:center;background:#fafafa;">{{ row.std }}</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b10_meas_{{ loop.index0 }}" form="report-form" placeholder="{{ row.meas }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b10_result_{{ loop.index0 }}" form="report-form" placeholder="{{ row.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;text-align:center;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">&nbsp;</td>
+</tr>
+{% endfor %}
+</tbody></table>
+</div>
+<h3 class="b3-h3" style="margin-top:12px;">사진 (3장)</h3>
+<table class="b8-slots-grid" style="width:100%;table-layout:fixed;border-collapse:separate;border-spacing:6px;">
+<tbody><tr>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_1" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_1', '붙임10 사진 1') }}
+</td>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_2" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_2', '붙임10 사진 2') }}
+</td>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_3" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_3', '붙임10 사진 3') }}
+</td>
+<td style="width:25%;"></td>
+</tr></tbody></table>
+</div>
+</div>
+</section>
+
+<!-- 붙임11 — 변압기 점검기록표 (편집) -->
+<section class="block-section">
+<h2>📑 붙임11 — 변압기 점검기록표</h2>
+<p class="hint">기본/측정 항목 편집 가능. 빈 값 = 원본 유지.</p>
+<div class="block">
+<div class="block-header"><span class="block-num">붙임11</span><span class="block-title">{{ site_name }}</span></div>
+<div class="b3-section">
+<div style="overflow-x:auto;">
+<table style="width:100%;border-collapse:collapse;font-size:11.5px;">
+<thead><tr style="background:#d9d9d9;">
+<th colspan="2" style="border:1px solid #999;padding:6px;">변압기 기본사항</th>
+<th colspan="2" style="border:1px solid #999;padding:6px;">절연저항 (㏁) 및 결과</th>
+</tr></thead>
+<tbody>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;width:25%;">설치 장소</td>
+<td style="border:1px solid #999;padding:2px;width:25%;"><input type="text" name="b11_place" form="report-form" placeholder="{{ b11_data.place }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;width:25%;">1차 대지</td>
+<td style="border:1px solid #999;padding:2px;width:25%;"><input type="text" name="b11_ins_1d" form="report-form" placeholder="{{ b11_data.ins_1d }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">상수 / 용량</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_cap" form="report-form" placeholder="{{ b11_data.phase }} {{ b11_data.cap }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">2차 대지</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_2d" form="report-form" placeholder="{{ b11_data.ins_2d }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">1차 전압 (Kv)</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_v_pri" form="report-form" placeholder="{{ b11_data.v_pri }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">1차</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_1" form="report-form" placeholder="{{ b11_data.ins_1 }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">2차 전압 (V)</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_v_sec" form="report-form" placeholder="{{ b11_data.v_sec }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">2차</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ins_2" form="report-form" placeholder="{{ b11_data.ins_2 }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">제작 회사</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_company" form="report-form" placeholder="{{ b11_data.company }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">외부 점검</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_ext_check" form="report-form" placeholder="{{ b11_data.ext_check }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+<tr><td style="border:1px solid #999;padding:6px;background:#fafafa;">양부 결과</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_result" form="report-form" placeholder="{{ b11_data.result }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+<td style="border:1px solid #999;padding:6px;background:#fafafa;">비 고</td>
+<td style="border:1px solid #999;padding:2px;"><input type="text" name="b11_note" form="report-form" placeholder="{{ b11_data.note }}" style="width:100%;padding:4px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;"></td>
+</tr>
+</tbody></table>
+</div>
+<p style="font-size:11px;color:#666;margin-top:6px;">[비고] 1. *표 항목은 필요시에 실시함. 2. 외부 점검란은 ○,×로 표기</p>
+</div>
+</div>
+</section>
+{% endif %}
+
+</main>
+</form>
+
+<script>
+var SITE_NAME = document.body.dataset.siteName || 'site';
+var STORAGE_PREFIX = 'photo_' + SITE_NAME + '_';
+
+// === sticky-top-wrap이 fixed라 body padding-top을 wrap 높이만큼 동적 설정 ===
+function _updateStickyPad() {
+  var wrap = document.querySelector('.sticky-top-wrap');
+  if (wrap) document.body.style.paddingTop = wrap.offsetHeight + 'px';
+}
+window.addEventListener('load', function() {
+  _updateStickyPad();
+  // ResizeObserver로 wrap 높이 변화 자동 감지
+  try {
+    var wrap = document.querySelector('.sticky-top-wrap');
+    if (wrap && window.ResizeObserver) {
+      new ResizeObserver(_updateStickyPad).observe(wrap);
+    }
+  } catch(e) {}
+  // === v86: 페이지 로드 시 draft 자동 복원 ===
+  try { autoRestoreDraft(); } catch(e) { console.warn('autoRestoreDraft 실패', e); }
+  // === v86: 입력 변경 시 debounced 자동 백업(draft) ===
+  try { attachAutoDraftListeners(); } catch(e) { console.warn('attachAutoDraftListeners 실패', e); }
+});
+window.addEventListener('resize', _updateStickyPad);
+// orientation 변경(모바일) 시에도
+window.addEventListener('orientationchange', function() { setTimeout(_updateStickyPad, 200); });
+var MAX_SIDE = 900;     // 1280→900 (sessionStorage 부담 절반)
+var JPEG_QUALITY = 0.72;
+
+function renderPreview(name, dataUrl, fname) {
+  var preview = document.getElementById('preview_' + name);
+  if (!preview) return;
+  preview.innerHTML = '';
+  // preview 박스가 position:relative여야 자식 absolute가 작동
+  preview.style.position = 'relative';
+  preview.style.width = '100%';
+  preview.style.overflow = 'hidden';
+  var img = document.createElement('img');
+  img.src = dataUrl;
+  img.alt = 'preview';
+  // ★ inline style 강제 — 모든 CSS 충돌 우회 + 박스 가득 채우기
+  img.style.cssText =
+    'position:absolute !important;' +
+    'top:0 !important; left:0 !important;' +
+    'width:100% !important; height:100% !important;' +
+    'max-width:100% !important; max-height:100% !important;' +
+    'object-fit:contain !important;' +
+    'object-position:center center !important;' +
+    'display:block !important;' +
+    'z-index:1;';
+  // 이미지 로드 완료 후 한 번 더 강제 (모바일에서 onload 늦을 때 대비)
+  img.onload = function() {
+    img.style.width = '100%';
+    img.style.height = '100%';
+    img.style.objectFit = 'contain';
+  };
+  var btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'btn-delete-photo';
+  btn.textContent = '✕'; btn.title = '사진 삭제';
+  btn.onclick = function() { deletePhoto(name); };
+  // 삭제 버튼/파일명 태그도 z-index 보장
+  btn.style.zIndex = '10';
+  var tag = document.createElement('div');
+  tag.className = 'fname-tag'; tag.textContent = fname;
+  tag.style.zIndex = '5';
+  preview.appendChild(img);
+  preview.appendChild(btn);
+  preview.appendChild(tag);
+}
+
+function resizeImage(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onerror = reject;
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onerror = reject;
+      img.onload = function() {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (w > MAX_SIDE || h > MAX_SIDE) {
+          if (w > h) { h = Math.round(h * MAX_SIDE / w); w = MAX_SIDE; }
+          else       { w = Math.round(w * MAX_SIDE / h); h = MAX_SIDE; }
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        canvas.toBlob(function(blob) {
+          var r2 = new FileReader();
+          r2.onload = function(e2) { resolve({ dataUrl: e2.target.result, blob: blob }); };
+          r2.readAsDataURL(blob);
+        }, 'image/jpeg', JPEG_QUALITY);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function dataUrlToFile(dataUrl, fname) {
+  return fetch(dataUrl).then(function(r){return r.blob();}).then(function(blob){
+    return new File([blob], fname, { type: blob.type || 'image/jpeg' });
+  });
+}
+
+function setInputFile(input, file) {
+  try {
+    var dt = new DataTransfer();
+    dt.items.add(file);
+    input.files = dt.files;
+  } catch (e) {}
+}
+
+function showPreview(name, input) {
+  var preview = document.getElementById('preview_' + name);
+  if (!input.files || !input.files[0]) { preview.textContent = '선택된 파일 없음'; return; }
+  var file = input.files[0];
+  if (!file.type.startsWith('image/')) { preview.textContent = file.name; return; }
+  preview.innerHTML = '<span style="font-size:11px;color:#888">처리중...</span>';
+  resizeImage(file).then(function(r) {
+    var newFile = new File([r.blob], file.name, { type: 'image/jpeg' });
+    setInputFile(input, newFile);
+    renderPreview(name, r.dataUrl, file.name);
+    try { tryFlirAnalysis(name, file); } catch(e) { console.warn('FLIR 시도 실패', e); }
+    var existingMarkers = (window._flirDecoded && window._flirDecoded[name]) || null;
+    fetch('/api/photo', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ dataUrl: r.dataUrl })
+    }).then(function(rs){return rs.json();}).then(function(resp) {
+      if (resp && resp.id) {
+        try {
+          sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+            photo_id: resp.id, name: file.name, markers: existingMarkers
+          }));
+          console.log('[showPreview] uploaded ' + name + ' id=' + resp.id + ' (' + Math.round((resp.size||0)/1024) + 'KB)');
+          try { scheduleDraftSave('사진 추가: ' + name); } catch(e) {}
+        } catch (e) {
+          console.error('[showPreview] sessionStorage 가득참 (photo_id):', e);
+        }
+      } else {
+        console.warn('[showPreview] 서버 업로드 응답 이상, dataUrl 폴백:', name, resp);
+        try {
+          sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+            dataUrl: r.dataUrl, name: file.name, markers: existingMarkers
+          }));
+        } catch(e2) {
+          var statusEl = document.getElementById('autosave-status');
+          if (statusEl) {
+            statusEl.className = 'ab-autosave-status error';
+            statusEl.textContent = '⚠ 사진 저장 실패: ' + name;
+            setTimeout(function(){ statusEl.textContent = ''; }, 6000);
+          }
+        }
+      }
+    }).catch(function(err) {
+      console.error('[showPreview] /api/photo 통신 실패:', name, err);
+      try {
+        sessionStorage.setItem(STORAGE_PREFIX + name, JSON.stringify({
+          dataUrl: r.dataUrl, name: file.name, markers: existingMarkers
+        }));
+      } catch(e3) {
+        var statusEl2 = document.getElementById('autosave-status');
+        if (statusEl2) {
+          statusEl2.className = 'ab-autosave-status error';
+          statusEl2.textContent = '⚠ 사진 업로드 실패 + 저장공간 부족';
+          setTimeout(function(){ statusEl2.textContent = ''; }, 6000);
+        }
+      }
+    });
+  }).catch(function(e) { console.error(e); preview.textContent = '미리보기 실패'; });
+}
+
+function deletePhoto(name) {
+  sessionStorage.removeItem(STORAGE_PREFIX + name);
+  var input = document.getElementById('file_' + name);
+  if (input) { try { input.value = ''; } catch(e){} try { input.files = new DataTransfer().files; } catch(e){} }
+  var preview = document.getElementById('preview_' + name);
+  if (preview) preview.textContent = '선택된 파일 없음';
+  if (window._flirDecoded) delete window._flirDecoded[name];
+  removeFlirControls(name);
+  try { scheduleDraftSave('사진 삭제: ' + name); } catch(e) {}
+}
+
+function removeFlirControls(name) {
+  ['.sp-controls','.bx-controls','.flir-status','.bx-result'].forEach(function(sel) {
+    document.querySelectorAll(sel).forEach(function(el) {
+      if (el.dataset && el.dataset.target === name) el.remove();
+    });
+  });
+}
+
+window.addEventListener('DOMContentLoaded', function() {
+  var keys = [];
+  for (var i = 0; i < sessionStorage.length; i++) {
+    var k = sessionStorage.key(i);
+    if (k && k.indexOf(STORAGE_PREFIX) === 0) keys.push(k);
+  }
+  keys.forEach(function(key) {
+    try {
+      var data = JSON.parse(sessionStorage.getItem(key));
+      var name = key.substring(STORAGE_PREFIX.length);
+      var input = document.getElementById('file_' + name);
+      if (!input) return;
+      dataUrlToFile(data.dataUrl, data.name).then(function(file) {
+        setInputFile(input, file);
+        renderPreview(name, data.dataUrl, data.name);
+        // markers 복원 (저장됐던 SP/BX)
+        if (data.markers && data.markers.hash) {
+          window._flirDecoded[name] = data.markers;
+          // FLIR 상태 + 컨트롤 UI 복원
+          setFlirStatus(name, '✓ FLIR ' + data.markers.width + '×' + data.markers.height + ' (저장됨)');
+          showControls(name);
+          // 잠깐 기다린 후 마커 그리기 (이미지 로드 대기)
+          setTimeout(function(){ drawMarkers(name); }, 100);
+          setTimeout(function(){ drawMarkers(name); }, 500);  // 한 번 더 (느린 로딩 대비)
+        }
+      });
+    } catch (e) {}
+  });
+});
+
+document.addEventListener('submit', function(ev) {
+  if (ev.target && ev.target.action && ev.target.action.indexOf('/generate') !== -1) {
+    var form = ev.target;
+    // 폼 제출 직전 SP/BX 마커 정보를 hidden field에 넣음
+    try {
+      var markers = {};
+      for (var name in window._flirDecoded) {
+        var info = window._flirDecoded[name];
+        var _off = getOffset(name);
+        markers[name] = { sp: info.sp || {}, bx: info.bx || {}, width: info.width, height: info.height, offset: _off };
+      }
+      var markersStr = JSON.stringify(markers);
+      document.getElementById('markers_json').value = markersStr;
+      console.log('[FORM SUBMIT] markers_json (len=' + markersStr.length + '):', markersStr.substring(0, 500));
+    } catch(e) { console.warn('markers 직렬화 실패', e); }
+    // v88 — sessionStorage의 photo_id/dataUrl을 hidden input(__photo__<slot>)으로 주입
+    // (PC에서 저장 후 모바일에서 불러왔을 때 input.files가 비어있어도 PDF 생성 가능하도록)
+    try {
+      form.querySelectorAll('input[type="hidden"][data-photo-slot]').forEach(function(el){ el.remove(); });
+      var injected = 0;
+      for (var i = 0; i < sessionStorage.length; i++) {
+        var k = sessionStorage.key(i);
+        if (k && k.indexOf(STORAGE_PREFIX) === 0) {
+          var slot = k.substring(STORAGE_PREFIX.length);
+          var v = sessionStorage.getItem(k);
+          if (v) {
+            var h = document.createElement('input');
+            h.type = 'hidden';
+            h.name = '__photo__' + slot;
+            h.value = v;
+            h.setAttribute('data-photo-slot', slot);
+            form.appendChild(h);
+            injected++;
+          }
+        }
+      }
+      console.log('[FORM SUBMIT] hidden 사진 주입: ' + injected + '개');
+    } catch(e) { console.warn('hidden 사진 주입 실패', e); }
+    setTimeout(function() {
+      try {
+        var toRemove = [];
+        for (var i = 0; i < sessionStorage.length; i++) {
+          var k = sessionStorage.key(i);
+          if (k && k.indexOf(STORAGE_PREFIX) === 0) toRemove.push(k);
+        }
+        toRemove.forEach(function(k) { sessionStorage.removeItem(k); });
+      } catch (e) {}
+    }, 5000);
+  }
+});
+
+// ============ FLIR 자동 분석 ============
+window._flirDecoded = {};
+var _activeMode = null;
+function persistMarkers(name) {
+  try {
+    var key = STORAGE_PREFIX + name;
+    var existing = sessionStorage.getItem(key);
+    if (!existing) return;
+    var obj = JSON.parse(existing);
+    obj.markers = window._flirDecoded[name] || null;
+    sessionStorage.setItem(key, JSON.stringify(obj));
+  } catch (e) {}
+}
+ // 'sp1'/'sp2'/'sp3'/'bx1'/'bx2'/'bx3'
+var _activeName = null;
+var _dragState = null;
+
+// 새 열화상 사진이 들어오면 해당 블록의 Point 1/2/3 입력란을 빈 값으로 초기화
+function clearPointsForPhoto(name) {
+  var m = name.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var bi = m[1];
+  var kind = m[2] === 'ut' ? 'u' : 'l';
+  [0, 1, 2].forEach(function(i) {
+    var inp = document.querySelector('input[name="' + kind + bi + '_p' + i + '"]');
+    if (inp) inp.value = '';
+  });
+}
+
+// 열화상에서 추출한 embedded 실화상을 같은 블록의 실화상 슬롯에 자동 채움
+//   photo_X_ut → photo_X_uv (상단), photo_X_lt → photo_X_lv (하단)
+function autoFillVisible(irName, visibleDataUrl) {
+  if (!visibleDataUrl) return;
+  var m = irName.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var visName = 'photo_' + m[1] + '_' + (m[2] === 'ut' ? 'uv' : 'lv');
+  var visInput = document.getElementById('file_' + visName);
+  if (!visInput) return;
+  // dataURL → Blob → File
+  fetch(visibleDataUrl).then(function(r){return r.blob();}).then(function(blob){
+    var fname = 'visible_' + irName + '.jpg';
+    var newFile = new File([blob], fname, { type: 'image/jpeg' });
+    try {
+      var dt = new DataTransfer();
+      dt.items.add(newFile);
+      visInput.files = dt.files;
+    } catch(e) {}
+    // 미리보기 갱신 + 리사이즈/저장 흐름
+    showPreview(visName, visInput);
+    console.log('[autoFillVisible] ' + irName + ' → ' + visName + ' 자동 채움');
+  }).catch(function(e){ console.warn('autoFillVisible 실패', e); });
+}
+
+// v90 — preserveMarkers=true면 기존 sp/bx 좌표 보존 (불러오기 경로). 새 사진 추가 경로(false)에서만 초기화.
+function tryFlirAnalysis(name, file, preserveMarkers) {
+  if (!/_(ut|lt)$/.test(name)) return;
+  var fd = new FormData();
+  fd.append('photo', file);
+  fetch('/api/flir_decode', { method: 'POST', body: fd }).then(function(r){return r.json();}).then(function(data){
+    if (data && data.visible_image_b64) {
+      autoFillVisible(name, data.visible_image_b64);
+    }
+    if (!data || !data.is_flir) { setFlirStatus(name, '(FLIR 메타 없음)', true); return; }
+    var prev = (window._flirDecoded && window._flirDecoded[name]) || null;
+    window._flirDecoded = window._flirDecoded || {};
+    if (preserveMarkers && prev) {
+      // 불러오기 경로 — sp/bx 좌표는 그대로 유지, width/height/hash만 갱신
+      window._flirDecoded[name] = {
+        hash: data.hash, width: data.width, height: data.height,
+        sp: prev.sp || {1:null,2:null,3:null},
+        bx: prev.bx || {1:null,2:null,3:null},
+        centerTemp: prev.centerTemp || null
+      };
+    } else {
+      window._flirDecoded[name] = {
+        hash: data.hash, width: data.width, height: data.height,
+        sp: {1:null,2:null,3:null}, bx: {1:null,2:null,3:null},
+        centerTemp: null
+      };
+      // 새 사진 추가 경로일 때만 Point 1/2/3 자동 초기화
+      clearPointsForPhoto(name);
+    }
+    setFlirStatus(name, '✓ FLIR ' + data.width + '×' + data.height + ' · ' + data.temp_min + '°C ~ ' + data.temp_max + '°C');
+    showControls(name);
+    // v90 — 보존된 sp/bx가 있으면 다시 그리기 (위치 정확 일치)
+    if (preserveMarkers) {
+      try { drawMarkers(name); } catch (e) { console.warn('drawMarkers err', name, e); }
+    }
+  }).catch(function(e) { console.warn('FLIR 분석 오류', e); });
+}
+
+function setFlirStatus(name, msg, isError) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  var stat = null;
+  var sib = prev.parentElement.querySelectorAll('.flir-status');
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { stat = sib[i]; break; }
+  if (!stat) {
+    stat = document.createElement('div');
+    stat.className = 'flir-status'; stat.dataset.target = name;
+    prev.parentElement.appendChild(stat);
+  }
+  stat.textContent = msg;
+  if (isError) stat.classList.add('error'); else stat.classList.remove('error');
+}
+
+function showControls(name) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  // SP 컨트롤
+  var sib = prev.parentElement.querySelectorAll('.sp-controls');
+  var exists = false;
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { exists = true; break; }
+  if (!exists) {
+    var spCtrl = document.createElement('div');
+    spCtrl.className = 'sp-controls';
+    spCtrl.dataset.target = name;
+    [1,2,3].forEach(function(i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'SP' + i;
+      b.onclick = function() { toggleMode(name, 'sp' + i, b); };
+      spCtrl.appendChild(b);
+    });
+    var bxCtrl = document.createElement('div');
+    bxCtrl.className = 'bx-controls';
+    bxCtrl.dataset.target = name;
+    [1,2,3].forEach(function(i) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.textContent = 'Bx' + i;
+      b.onclick = function() { toggleMode(name, 'bx' + i, b); };
+      bxCtrl.appendChild(b);
+    });
+    var c = document.createElement('button');
+    c.type = 'button'; c.textContent = '취소';
+    c.style.color = '#666'; c.style.borderColor = '#aaa';
+    c.onclick = function() { resetAllMarkers(name); };
+    bxCtrl.appendChild(c);
+    prev.parentElement.appendChild(spCtrl);
+    prev.parentElement.appendChild(bxCtrl);
+    // 온도 보정 오프셋 입력란
+    var off = document.createElement('div');
+    off.className = 'temp-offset';
+    off.dataset.target = name;
+    off.innerHTML = '<label>온도 보정: <input type="number" step="0.1" data-offset="' + name + '" value="0" placeholder="0.0"></label><span class="unit">°C</span><span class="hint">(SP/BX 값에 자동 가감)</span>';
+    prev.parentElement.appendChild(off);
+    // offset 변경 시 모든 SP/BX 값 재적용
+    off.querySelector('input').addEventListener('change', function(){ reapplyOffset(name); });
+    off.querySelector('input').addEventListener('input', function(){ reapplyOffset(name); });
+    // 이벤트 핸들러 설치
+    prev.addEventListener('click', onPreviewClick);
+    prev.addEventListener('mousedown', onDragStart);
+    prev.addEventListener('touchstart', onDragStart, {passive: false});
+  }
+}
+
+function getOffset(name) {
+  var el = document.querySelector('input[data-offset="' + name + '"]');
+  if (!el) return 0;
+  var v = parseFloat(el.value);
+  return isNaN(v) ? 0 : v;
+}
+
+function reapplyOffset(name) {
+  // 사진에 등록된 모든 SP/BX에 offset 적용 → Point 입력란 + 사진 위 표시 + BX 결과 텍스트 모두 갱신
+  var info = window._flirDecoded && window._flirDecoded[name];
+  if (!info) return;
+  var off = getOffset(name);
+  // 1) Point 1/2/3 입력란 — SP는 SP가 우선, 그 다음 BX max
+  for (var k = 1; k <= 3; k++) {
+    var p = info.sp[k];
+    if (p && p.t != null) {
+      autoFillPoint(name, k, Math.round((p.t + off) * 10) / 10);
+    }
+  }
+  for (var k2 = 1; k2 <= 3; k2++) {
+    var b = info.bx[k2];
+    if (b && b.max != null) {
+      autoFillPoint(name, k2, Math.round((b.max + off) * 10) / 10);
+    }
+  }
+  // 2) 사진 위 마커 + 좌측 상단 오버레이 다시 그리기 (보정값 반영)
+  try { drawMarkers(name); } catch(e) { console.warn(e); }
+  // 3) BX 결과 텍스트 다시 표시 (보정값 반영)
+  try {
+    for (var k3 = 1; k3 <= 3; k3++) {
+      var bb = info.bx[k3];
+      if (bb) showBxResult(name, k3, bb);
+    }
+  } catch(e) { console.warn(e); }
+  // 4) sessionStorage에도 현재 offset 보존
+  try { persistMarkers(name); } catch(e) {}
+}
+
+function toggleMode(name, mode, btn) {
+  clearActiveButtons();
+  _activeName = name; _activeMode = mode;
+  btn.classList.add('active');
+  var prev = document.getElementById('preview_' + name);
+  if (prev) {
+    prev.classList.remove('sp-active','bx-active');
+    if (mode.indexOf('sp') === 0) prev.classList.add('sp-active');
+    else prev.classList.add('bx-active');
+  }
+}
+
+function clearActiveButtons() {
+  document.querySelectorAll('.sp-controls button.active, .bx-controls button.active').forEach(function(b){ b.classList.remove('active'); });
+  document.querySelectorAll('.photo-preview.sp-active, .photo-preview.bx-active').forEach(function(p){
+    p.classList.remove('sp-active','bx-active');
+  });
+}
+
+function exitMode() {
+  clearActiveButtons();
+  _activeName = null; _activeMode = null;
+}
+
+// 취소 버튼 = 해당 사진의 모든 SP/BX 마커, Point 입력란, bx-result 결과 텍스트
+// 모두 지우고 모드 리셋 → 처음부터 다시 탭 가능
+function resetAllMarkers(name) {
+  if (window._flirDecoded && window._flirDecoded[name]) {
+    window._flirDecoded[name].sp = {1:null, 2:null, 3:null};
+    window._flirDecoded[name].bx = {1:null, 2:null, 3:null};
+  }
+  // 사진 위 마커 전부 제거 (drawMarkers가 빈 정보로 재그리기)
+  var prev = document.getElementById('preview_' + name);
+  if (prev) {
+    prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
+  }
+  // BX 결과 텍스트(예: "Bx1: max ... / min ... / avg ...") 모두 비우기
+  if (prev && prev.parentElement) {
+    prev.parentElement.querySelectorAll('.bx-result').forEach(function(r) {
+      if (r.dataset && r.dataset.target === name) r.textContent = '';
+    });
+  }
+  // Point 1/2/3 입력란 비우기
+  try { clearPointsForPhoto(name); } catch(e) {}
+  // sessionStorage 마커 정보 갱신 (다음 로드 시 빈 상태)
+  try { if (typeof persistMarkers === 'function') persistMarkers(name); } catch(e) {}
+  // 활성 모드 종료
+  exitMode();
+  console.log('[resetAllMarkers] ' + name + ' SP/BX/Point 전부 초기화');
+}
+
+function getPixelFromEvent(prev, clientX, clientY) {
+  var img = prev.querySelector('img');
+  if (!img) return null;
+  var rect = img.getBoundingClientRect();
+  var ix = clientX - rect.left, iy = clientY - rect.top;
+  if (ix < 0 || iy < 0 || ix > rect.width || iy > rect.height) return null;
+  var info = window._flirDecoded[_activeName];
+  if (!info) return null;
+  return {
+    dispX: ix, dispY: iy,
+    rectW: rect.width, rectH: rect.height,
+    rx: Math.round(ix / rect.width * info.width),
+    ry: Math.round(iy / rect.height * info.height)
+  };
+}
+
+function onPreviewClick(ev) {
+  // 모바일과 PC 마우스 모두 onDragStart/onDragEnd 흐름에서 처리됨
+  // (mousedown → mousemove → mouseup → click 순서이지만 click 시점에 _dragState 이미 null)
+  // click은 fallback 또는 중복 방지를 위해 무시
+  return;
+}
+
+function onDragStart(ev) {
+  if (!_activeName || !_activeMode) return;
+  // SP/BX 모두 처리 시작 — onDragEnd에서 분기
+  try { ev.preventDefault(); } catch(_){}
+  try { ev.stopPropagation(); } catch(_){}
+  // 햅틱 피드백 (모바일)
+  try { if (navigator.vibrate) navigator.vibrate(25); } catch(_){}
+  var prev = ev.currentTarget;
+  var cx, cy;
+  if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+  else { cx = ev.clientX; cy = ev.clientY; }
+  var p = getPixelFromEvent(prev, cx, cy);
+  if (!p) return;
+  _dragState = { prev: prev, start: p, didMove: false, mode: _activeMode, startTime: Date.now() };
+  // BX 모드만 임시 박스 표시
+  if (_activeMode.indexOf('bx') === 0) {
+    var box = document.createElement('div');
+    box.className = 'bx-drag';
+    box.id = '_dragbox';
+    box.style.left = p.dispX + 'px';
+    box.style.top = p.dispY + 'px';
+    box.style.width = '0px';
+    box.style.height = '0px';
+    prev.appendChild(box);
+  }
+  document.addEventListener('mousemove', onDragMove);
+  document.addEventListener('mouseup', onDragEnd);
+  document.addEventListener('touchmove', onDragMove, {passive: false});
+  document.addEventListener('touchend', onDragEnd);
+  document.addEventListener('touchcancel', onDragEnd);
+}
+
+function onDragMove(ev) {
+  if (!_dragState) return;
+  try { ev.preventDefault(); } catch(_){}
+  var cx, cy;
+  if (ev.touches && ev.touches[0]) { cx = ev.touches[0].clientX; cy = ev.touches[0].clientY; }
+  else if (ev.changedTouches && ev.changedTouches[0]) { cx = ev.changedTouches[0].clientX; cy = ev.changedTouches[0].clientY; }
+  else { cx = ev.clientX; cy = ev.clientY; }
+  var p = getPixelFromEvent(_dragState.prev, cx, cy);
+  if (!p) return;
+  _dragState.end = p;
+  // 5px 이상 이동해야 실제 드래그로 인식 (의도치 않은 흔들림 무시)
+  var dx = p.dispX - _dragState.start.dispX;
+  var dy = p.dispY - _dragState.start.dispY;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    _dragState.didMove = true;
+  }
+  // BX 모드일 때만 임시 박스 갱신
+  if (_dragState.mode && _dragState.mode.indexOf('bx') === 0) {
+    var box = document.getElementById('_dragbox');
+    if (!box) return;
+    var x = Math.min(_dragState.start.dispX, p.dispX);
+    var y = Math.min(_dragState.start.dispY, p.dispY);
+    var w = Math.abs(p.dispX - _dragState.start.dispX);
+    var h = Math.abs(p.dispY - _dragState.start.dispY);
+    box.style.left = x + 'px';
+    box.style.top = y + 'px';
+    box.style.width = w + 'px';
+    box.style.height = h + 'px';
+  }
+}
+
+function onDragEnd(ev) {
+  document.removeEventListener('mousemove', onDragMove);
+  document.removeEventListener('mouseup', onDragEnd);
+  document.removeEventListener('touchmove', onDragMove);
+  document.removeEventListener('touchend', onDragEnd);
+  document.removeEventListener('touchcancel', onDragEnd);
+  var box = document.getElementById('_dragbox');
+  if (box) box.remove();
+  if (!_dragState) return;
+  var s = _dragState.start;
+  var e = _dragState.end || s;
+  var prev = _dragState.prev;
+  var didMove = _dragState.didMove;
+  var mode = _dragState.mode || _activeMode;
+  _dragState = null;
+  if (!mode || !_activeName) return;
+  var info = window._flirDecoded[_activeName];
+  if (!info) return;
+  var idx = parseInt(mode.substring(2));
+
+  // === SP 모드 — 클릭이든 드래그든 끝 위치에 SP 찍기 (v108: didMove 제한 제거) ===
+  if (mode.indexOf('sp') === 0) {
+    var spX = e.rx, spY = e.ry, spDx = e.dispX, spDy = e.dispY, spW = e.rectW, spH = e.rectH;
+    var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+              '&sp' + idx + '_x=' + spX + '&sp' + idx + '_y=' + spY;
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      if (data.points && data.points.length) {
+        var pt = data.points[0];
+        info.sp[idx] = { x: spX, y: spY, t: pt.temp,
+                         dispX: spDx, dispY: spDy,
+                         rectW: spW, rectH: spH };
+        drawMarkers(_activeName);
+        var _off = getOffset(_activeName);
+        autoFillPoint(_activeName, idx, Math.round((pt.temp + _off) * 10) / 10);
+        persistMarkers(_activeName);
+        try { if (navigator.vibrate) navigator.vibrate([15, 30, 15]); } catch(_){}
+        // 다음 SP로 자동 이동
+        var next = idx + 1;
+        if (next <= 3) {
+          var nb = prev.parentElement.querySelector('.sp-controls button:nth-child(' + next + ')');
+          if (nb) toggleMode(_activeName, 'sp' + next, nb);
+        } else { exitMode(); }
+      }
+    }).catch(function(e) { console.error(e); });
+    return;
+  }
+
+  // === BX 모드 — 드래그 (v108: didMove 무관, display 차이로만 판단) ===
+  if (mode.indexOf('bx') === 0) {
+    var x1 = Math.min(s.rx, e.rx), y1 = Math.min(s.ry, e.ry);
+    var x2 = Math.max(s.rx, e.rx), y2 = Math.max(s.ry, e.ry);
+    var dx1 = Math.min(s.dispX, e.dispX), dy1 = Math.min(s.dispY, e.dispY);
+    var dx2 = Math.max(s.dispX, e.dispX), dy2 = Math.max(s.dispY, e.dispY);
+    // display 좌표 차이가 5px 미만이면 드래그 안 한 것으로 보고 skip
+    if (Math.abs(e.dispX - s.dispX) < 5 || Math.abs(e.dispY - s.dispY) < 5) return;
+    // native 좌표 차이는 1 이상이면 박스로 인정 (작은 박스 허용)
+    if (x2 - x1 < 1) x2 = x1 + 1;
+    if (y2 - y1 < 1) y2 = y1 + 1;
+    var url = '/api/flir_temp?hash=' + encodeURIComponent(info.hash) +
+      '&bx' + idx + '_x1=' + x1 + '&bx' + idx + '_y1=' + y1 +
+      '&bx' + idx + '_x2=' + x2 + '&bx' + idx + '_y2=' + y2;
+    fetch(url).then(function(r){return r.json();}).then(function(data){
+      if (data.boxes && data.boxes.length) {
+        var b = data.boxes[0];
+        info.bx[idx] = {
+          x1: x1, y1: y1, x2: x2, y2: y2,
+          dx1: dx1, dy1: dy1, dx2: dx2, dy2: dy2,
+          rectW: s.rectW, rectH: s.rectH,
+          max: b.max, min: b.min, avg: b.avg,
+          max_x: b.max_x, max_y: b.max_y, min_x: b.min_x, min_y: b.min_y
+        };
+        drawMarkers(_activeName);
+        showBxResult(_activeName, idx, b);
+        var _off2 = getOffset(_activeName);
+        autoFillPoint(_activeName, idx, Math.round((b.max + _off2) * 10) / 10);
+        persistMarkers(_activeName);
+        try { if (navigator.vibrate) navigator.vibrate([20, 40, 20]); } catch(_){}
+      }
+    }).catch(function(e) { console.error(e); });
+  }
+}
+
+function showBxResult(name, idx, b) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  var res = null;
+  var sib = prev.parentElement.querySelectorAll('.bx-result');
+  for (var i = 0; i < sib.length; i++) if (sib[i].dataset.target === name) { res = sib[i]; break; }
+  if (!res) {
+    res = document.createElement('div');
+    res.className = 'bx-result'; res.dataset.target = name;
+    prev.parentElement.appendChild(res);
+  }
+  // offset 적용된 값으로 표시
+  var _off = getOffset(name);
+  var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
+  res.textContent = 'Bx' + idx + ': max ' + fmt(b.max) + '°C · min ' + fmt(b.min) + '°C · avg ' + fmt(b.avg) + '°C';
+}
+
+// v92 — preview 박스 크기에 맞춰 FLIR native (x,y) 좌표를 현재 디스플레이 좌표로 변환
+// object-fit: contain일 때 letterbox(여백) 보정 포함
+function _flirNativeToDisp(info, prev) {
+  var img = prev.querySelector('img');
+  if (!img || !info || !info.width || !info.height) return null;
+  // img 요소의 실제 박스(여기서 preview 박스와 동일 — width:100% height:100%)
+  var boxW = img.clientWidth, boxH = img.clientHeight;
+  if (boxW <= 0 || boxH <= 0) return null;
+  var imgAspect = info.width / info.height;
+  var boxAspect = boxW / boxH;
+  var contentW, contentH, padX, padY;
+  if (imgAspect >= boxAspect) {
+    // 좌우 가득, 상하 여백
+    contentW = boxW;
+    contentH = boxW / imgAspect;
+    padX = 0;
+    padY = (boxH - contentH) / 2;
+  } else {
+    // 상하 가득, 좌우 여백
+    contentH = boxH;
+    contentW = boxH * imgAspect;
+    padX = (boxW - contentW) / 2;
+    padY = 0;
+  }
+  var sx = contentW / info.width;
+  var sy = contentH / info.height;
+  return {
+    toDisp: function(nx, ny) { return { x: padX + nx * sx, y: padY + ny * sy }; },
+    contentW: contentW, contentH: contentH, padX: padX, padY: padY,
+    boxW: boxW, boxH: boxH
+  };
+}
+
+function drawMarkers(name) {
+  var prev = document.getElementById('preview_' + name);
+  if (!prev) return;
+  prev.querySelectorAll('.sp-marker, .bx-marker, .hot-marker, .cold-marker, .flir-overlay').forEach(function(m){ m.remove(); });
+  var info = window._flirDecoded[name];
+  if (!info) return;
+  if (!prev.querySelector('img')) return;
+  // v92 — native 좌표 → 현재 display 좌표 변환기 (이미지 크기 다를 때도 정확)
+  var conv = _flirNativeToDisp(info, prev);
+  if (!conv) return;
+  var _off = getOffset(name);
+  var fmt = function(v) { return (Math.round((v + _off) * 10) / 10).toFixed(1); };
+  // 1) 사진 위 SP 마커
+  [1,2,3].forEach(function(k) {
+    var p = info.sp[k];
+    if (!p) return;
+    // v92 — p.x/p.y(FLIR native)가 있으면 항상 재계산. 없으면 p.dispX/dispY 폴백
+    var pos;
+    if (p.x != null && p.y != null) {
+      pos = conv.toDisp(p.x, p.y);
+    } else {
+      pos = { x: p.dispX, y: p.dispY };
+    }
+    var m = document.createElement('div');
+    m.className = 'sp-marker';
+    m.style.left = pos.x + 'px';
+    m.style.top = pos.y + 'px';
+    m.title = 'Sp' + k + ': ' + (p.t != null ? ((Math.round((p.t + _off) * 10) / 10).toFixed(1)) + '°C' : '');
+    var lab = document.createElement('span');
+    lab.className = 'sp-label';
+    lab.textContent = 'Sp' + k;
+    m.appendChild(lab);
+    prev.appendChild(m);
+  });
+  // 2) BX 박스 — native 좌표(rx1/ry1/rx2/ry2) 있으면 재계산, 없으면 dx1/dy1 폴백
+  [1,2,3].forEach(function(k) {
+    var b = info.bx[k];
+    if (!b) return;
+    var x1, y1, x2, y2;
+    if (b.x1 != null && b.y1 != null && b.x2 != null && b.y2 != null) {
+      var p1 = conv.toDisp(b.x1, b.y1);
+      var p2 = conv.toDisp(b.x2, b.y2);
+      x1 = Math.min(p1.x, p2.x); y1 = Math.min(p1.y, p2.y);
+      x2 = Math.max(p1.x, p2.x); y2 = Math.max(p1.y, p2.y);
+    } else {
+      x1 = b.dx1; y1 = b.dy1; x2 = b.dx2; y2 = b.dy2;
+    }
+    var m = document.createElement('div');
+    m.className = 'bx-marker';
+    m.style.left = x1 + 'px';
+    m.style.top = y1 + 'px';
+    m.style.width = (x2 - x1) + 'px';
+    m.style.height = (y2 - y1) + 'px';
+    m.title = 'Bx' + k + ': max ' + fmt(b.max) + '°C / min ' + fmt(b.min) + '°C / avg ' + fmt(b.avg) + '°C';
+    var lab = document.createElement('span');
+    lab.className = 'bx-label';
+    lab.textContent = 'Bx' + k;
+    m.appendChild(lab);
+    prev.appendChild(m);
+    
+    // 핫/콜드 스팟 — 박스 내 max/min 좌표를 display 좌표로 변환
+    if (b.max_x != null && b.max_y != null) {
+      var hx = b.max_x * (b.rectW / info.width);
+      var hy = b.max_y * (b.rectH / info.height);
+      var hot = document.createElement('div');
+      hot.className = 'hot-marker';
+      hot.style.left = hx + 'px';
+      hot.style.top = hy + 'px';
+      hot.title = '핫스팟 (Bx' + k + ' max ' + b.max + '°C)';
+      prev.appendChild(hot);
+    }
+    if (b.min_x != null && b.min_y != null) {
+      var cx = b.min_x * (b.rectW / info.width);
+      var cy = b.min_y * (b.rectH / info.height);
+      var cold = document.createElement('div');
+      cold.className = 'cold-marker';
+      cold.style.left = cx + 'px';
+      cold.style.top = cy + 'px';
+      cold.title = '콜드스팟 (Bx' + k + ' min ' + b.min + '°C)';
+      prev.appendChild(cold);
+    }
+  });
+  // 3) 좌측 상단 정보 오버레이 박스 (SP/BX 리스트) — offset 반영
+  var overlay = document.createElement('div');
+  overlay.className = 'flir-overlay';
+  // SP 리스트 (offset 적용)
+  [1,2,3].forEach(function(k) {
+    var p = info.sp[k];
+    if (!p || p.t == null) return;
+    overlay.innerHTML += '<div class="sp-row"><span class="lbl">Sp' + k + '</span><span class="val">' + fmt(p.t) + ' °C</span></div>';
+  });
+  // BX 리스트 max/min/avg (offset 적용)
+  [1,2,3].forEach(function(k) {
+    var b = info.bx[k];
+    if (!b) return;
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' max</span><span class="val">' + fmt(b.max) + ' °C</span></div>';
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' min</span><span class="val">' + fmt(b.min) + ' °C</span></div>';
+    overlay.innerHTML += '<div class="bx-row"><span class="lbl">Bx' + k + ' avg</span><span class="val">' + fmt(b.avg) + ' °C</span></div>';
+  });
+  prev.appendChild(overlay);
+}
+
+function autoFillPoint(name, idx, temp) {
+  var m = name.match(/^photo_(\d+)_(ut|lt)$/);
+  if (!m) return;
+  var bi = m[1];
+  var kind = m[2] === 'ut' ? 'u' : 'l';
+  var inp = document.querySelector('input[name="' + kind + bi + '_p' + (idx-1) + '"]');
+  if (inp) {
+    inp.value = temp;
+    inp.style.background = '#fffbe6';
+    setTimeout(function(){ inp.style.background = ''; }, 1500);
+  }
+}
+
+// ============================================================
+// 저장/불러오기/삭제/새로 작성 — v61 / v86 자동 draft 복원·백업
+// ============================================================
+var currentReportId = null;
+var _draftTimer = null;
+var _draftSaving = false;
+var _draftRestored = false;       // 자동 복원이 진행되어 사용자 입력이 아닌 상태
+var _draftInitialDelay = true;    // 페이지 로드 직후 draft 발동 차단
+
+// 입력 변경/사진 업로드 시 호출 — 2초 후 draft 저장 (사용자가 멈춘 뒤 한 번만)
+// populateFormData()는 input.value 직접 할당이라 'input' 이벤트가 발생하지 않으므로 안전.
+function scheduleDraftSave(reason) {
+  if (_draftTimer) clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(function() { saveDraft(reason || 'change'); }, 2000);
+}
+
+function saveDraft(reason) {
+  if (_draftSaving) return;
+  _draftSaving = true;
+  var siteName = document.body.dataset.siteName;
+  var nameInp = document.getElementById('report-name');
+  var name = (nameInp && nameInp.value) ? nameInp.value.trim() : '';
+  var data = serializeFormData();
+  fetch('/api/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ name: name, site_name: siteName, data: data, is_draft: true })
+  }).then(function(r){return r.json();}).then(function(res) {
+    _draftSaving = false;
+    if (res && res.success) {
+      var nphotos = Object.keys(data.photos || {}).length;
+      setAutosaveStatus('saved', '✓ 자동백업 (사진 ' + nphotos + '장) — ' + (reason||''));
+      setTimeout(function(){
+        var el = document.getElementById('autosave-status');
+        if (el && el.textContent.indexOf('자동백업') >= 0) setAutosaveStatus('', '');
+      }, 2500);
+    }
+  }).catch(function(e) {
+    _draftSaving = false;
+    console.warn('[draft] 저장 실패', e);
+  });
+}
+
+// 페이지 로드 시 — 해당 site의 draft 1건 자동 복원
+function autoRestoreDraft() {
+  var siteName = document.body.dataset.siteName;
+  if (!siteName) return;
+  fetch('/api/draft/' + encodeURIComponent(siteName)).then(function(r){return r.json();}).then(function(res) {
+    if (res && res.draft && res.draft.data) {
+      _draftRestored = true;
+      var d = res.draft;
+      var photoCount = Object.keys((d.data && d.data.photos) || {}).length;
+      console.log('[auto-restore] draft id=' + d.id + ' photos=' + photoCount);
+      populateFormData(d.data);
+      // 보고서 이름은 draft 그대로 (사용자가 정식 저장 시 새 이름 입력 가능)
+      var nameInp = document.getElementById('report-name');
+      if (nameInp && d.name && !nameInp.value) nameInp.value = d.name;
+      // currentReportId는 일부러 null로 유지 → 사용자가 저장 누르면 정식 보고서로 INSERT/UPDATE
+      setAutosaveStatus('saved', '✓ 이전 작업 자동 복원 (사진 ' + photoCount + '장)');
+      setTimeout(function(){
+        var el = document.getElementById('autosave-status');
+        if (el && el.textContent.indexOf('자동 복원') >= 0) setAutosaveStatus('', '');
+      }, 5000);
+    } else {
+      console.log('[auto-restore] draft 없음');
+    }
+  }).catch(function(e){ console.warn('[auto-restore] draft 조회 실패', e); }).finally(function(){
+    // 복원 시도 후 1.5초 뒤부터 자동 draft 발동 허용
+    setTimeout(function(){ _draftInitialDelay = false; }, 1500);
+  });
+}
+
+function attachAutoDraftListeners() {
+  // 모든 input 변경 → debounced draft
+  document.addEventListener('input', function(ev) {
+    var t = ev.target;
+    if (!t || !t.tagName) return;
+    if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') {
+      // 보고서 이름·사진 file input은 별도 처리, 텍스트/숫자만
+      if (t.type === 'file') return;
+      scheduleDraftSave('입력 변경');
+    }
+  }, true);
+  // 체크박스도
+  document.addEventListener('change', function(ev) {
+    var t = ev.target;
+    if (!t) return;
+    if (t.type === 'checkbox' || t.type === 'radio') {
+      scheduleDraftSave('체크박스');
+    }
+  }, true);
+}
+
+function setAutosaveStatus(state, msg) {
+  var el = document.getElementById('autosave-status');
+  if (!el) return;
+  el.className = 'ab-autosave-status ' + (state || '');
+  el.textContent = msg || '';
+}
+
+// 폼 데이터를 JSON으로 직렬화 (input 값 + 사진 dataURL + 마커 + offset)
+function serializeFormData() {
+  var fields = {};
+  // 폼 안 + 폼 밖에서 form="report-form" 속성으로 연결된 input 모두 포함
+  var selectors = [
+    '#report-form input[type="text"]',
+    '#report-form input[type="number"]',
+    '#report-form input[type="hidden"]',
+    'input[form="report-form"]'
+  ];
+  selectors.forEach(function(sel) {
+    document.querySelectorAll(sel).forEach(function(inp) {
+      if (!inp.name) return;
+      if (inp.type === 'checkbox' || inp.type === 'radio') {
+        fields[inp.name] = inp.checked ? (inp.value || '1') : '';
+      } else {
+        fields[inp.name] = inp.value;
+      }
+    });
+  });
+  // 보고서 이름 (액션바, 폼 밖)
+  var nameInp = document.getElementById('report-name');
+  if (nameInp) fields['__report_name'] = nameInp.value || '';
+  // 사진 dataURL (sessionStorage)
+  var photos = {};
+  try {
+    for (var i = 0; i < sessionStorage.length; i++) {
+      var k = sessionStorage.key(i);
+      if (k && k.indexOf(STORAGE_PREFIX) === 0) {
+        var slot = k.substring(STORAGE_PREFIX.length);
+        var v = sessionStorage.getItem(k);
+        if (v) photos[slot] = v;
+      }
+    }
+  } catch (e) { console.warn('[serialize] sessionStorage 읽기 실패', e); }
+  // offset 값
+  var offsets = {};
+  document.querySelectorAll('input[data-offset]').forEach(function(inp) {
+    offsets[inp.getAttribute('data-offset')] = parseFloat(inp.value) || 0;
+  });
+  // 마커
+  var markers = {};
+  if (window._flirDecoded) {
+    for (var n in window._flirDecoded) {
+      var info = window._flirDecoded[n];
+      markers[n] = { sp: info.sp || {}, bx: info.bx || {}, width: info.width, height: info.height, hash: info.hash };
+    }
+  }
+  console.log('[serialize] fields=' + Object.keys(fields).length + ', photos=' + Object.keys(photos).length + ', markers=' + Object.keys(markers).length);
+  return { fields: fields, photos: photos, markers: markers, offsets: offsets };
+}
+
+// JSON 데이터를 폼에 복원
+function populateFormData(data) {
+  if (!data) return;
+  // input 필드 — 폼 안 + 폼 밖 form="report-form" 속성 input 모두
+  if (data.fields) {
+    Object.keys(data.fields).forEach(function(name) {
+      if (name === '__report_name') return;  // 별도 처리
+      // 모든 input(name=일치) 후보 검색
+      var inps = document.querySelectorAll('[name="' + name.replace(/"/g, '\\"') + '"]');
+      inps.forEach(function(inp) {
+        if (inp.type === 'checkbox' || inp.type === 'radio') {
+          inp.checked = !!data.fields[name];
+        } else {
+          inp.value = data.fields[name];
+        }
+      });
+    });
+    if (data.fields['__report_name']) {
+      var nameInp = document.getElementById('report-name');
+      if (nameInp) nameInp.value = data.fields['__report_name'];
+    }
+  }
+  // v91 — 마커 100% 복원 통합 처리
+  //   1) data.markers + obj.markers를 슬롯별로 병합 (둘 다 비어있지 않은 값 우선)
+  //   2) 사진 미리보기 img.onload 이후에만 drawMarkers 호출 (race condition 제거)
+  //   3) tryFlirAnalysis는 width/height/hash 갱신 + sp/bx 보존 + drawMarkers 재호출
+  var photoCount = 0, photoRestored = 0;
+
+  function _isThermalSlot(slot) {
+    return /_(ut|lt)$/.test(slot);
+  }
+
+  // sp/bx 두 객체에서 null이 아닌 값을 우선 채택해서 깊은 병합
+  function _mergeMarkerInfo(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    var out = Object.assign({}, a, b);
+    ['sp','bx'].forEach(function(kind) {
+      var aK = a[kind] || {}, bK = b[kind] || {};
+      var merged = {};
+      [1,2,3].forEach(function(i) {
+        // a/b 중 null이 아닌 값 우선 (b가 더 최신 → 우선)
+        if (bK[i] != null) merged[i] = bK[i];
+        else if (aK[i] != null) merged[i] = aK[i];
+        else merged[i] = null;
+      });
+      out[kind] = merged;
+    });
+    return out;
+  }
+
+  function _afterPhotoReady(slot, file, obj, savedMarkers) {
+    window._flirDecoded = window._flirDecoded || {};
+    // 1) 두 출처(obj.markers, data.markers[slot]) 병합 — null 아닌 값 우선
+    var merged = _mergeMarkerInfo(savedMarkers || null, (obj && obj.markers) || null);
+    if (merged) {
+      // 기존 _flirDecoded와도 병합 (이미 tryFlirAnalysis 결과 들어와 있을 수 있음)
+      window._flirDecoded[slot] = _mergeMarkerInfo(window._flirDecoded[slot] || null, merged);
+    }
+    if (!_isThermalSlot(slot)) return;
+    // 2) 컨트롤 표시
+    try { showControls(slot); } catch(e) { console.warn('showControls err', slot, e); }
+    // 3) 미리보기 img가 이미 로드됐는지 확인 → drawMarkers
+    var prev = document.getElementById('preview_' + slot);
+    var img = prev ? prev.querySelector('img') : null;
+    function _drawWhenReady() {
+      try { drawMarkers(slot); } catch(e) { console.warn('drawMarkers err', slot, e); }
+    }
+    if (img) {
+      if (img.complete && img.naturalWidth > 0) {
+        _drawWhenReady();
+      } else {
+        img.addEventListener('load', _drawWhenReady, { once: true });
+        // 안전망: 1초 후에도 한 번 더 시도
+        setTimeout(_drawWhenReady, 1000);
+      }
+    } else {
+      // img DOM 없으면 100ms 후 재시도 (renderPreview 직후 호출 시)
+      setTimeout(_drawWhenReady, 100);
+    }
+    // 4) 파일 있으면 FLIR 재분석 (preserveMarkers=true → sp/bx 유지)
+    if (file) {
+      try { tryFlirAnalysis(slot, file, true); } catch(e) { console.warn('FLIR 재분석 실패', slot, e); }
+    }
+  }
+
+  if (data.photos) {
+    var slots = Object.keys(data.photos);
+    photoCount = slots.length;
+    slots.forEach(function(slot) {
+      try {
+        var v = data.photos[slot];
+        try { sessionStorage.setItem(STORAGE_PREFIX + slot, v); } catch (se) { console.warn('sessionStorage full', se); }
+        var obj = (typeof v === 'string') ? JSON.parse(v) : v;
+        if (obj && obj.photo_id) {
+          (function(_slot, _obj) {
+            fetch('/api/photo/' + _obj.photo_id).then(function(r){return r.json();}).then(function(res) {
+              if (res && res.dataUrl) {
+                renderPreview(_slot, res.dataUrl, _obj.name || _slot);
+                dataUrlToFile(res.dataUrl, _obj.name || (_slot + '.jpg')).then(function(file) {
+                  var mainInput = document.getElementById('file_' + _slot);
+                  if (mainInput) {
+                    setInputFile(mainInput, file);
+                  }
+                  // v89 — input.files 설정 성공/실패와 무관하게 컨트롤 복원
+                  _afterPhotoReady(_slot, file, _obj, (data.markers || {})[_slot]);
+                  photoRestored++;
+                  if (photoRestored === photoCount) {
+                    setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
+                    setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+                  }
+                }).catch(function(err){
+                  console.error(err);
+                  setAutosaveStatus('error','⚠ 사진 ' + _slot + ' 파일 변환 실패');
+                  // 그래도 컨트롤은 표시 (수동 모드)
+                  _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
+                });
+              } else {
+                console.error('[populate] 서버 photo 조회 실패: ' + _slot, res);
+                setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 서버에서 못 찾음');
+                _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
+              }
+            }).catch(function(err){
+              console.error('[populate] /api/photo 통신 실패: ' + _slot, err);
+              setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 통신 실패');
+              _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
+            });
+          })(slot, obj);
+        } else if (obj && obj.dataUrl) {
+          (function(_slot, _obj){
+            renderPreview(_slot, _obj.dataUrl, _obj.name || _slot);
+            dataUrlToFile(_obj.dataUrl, _obj.name || (_slot + '.jpg')).then(function(file) {
+              var mainInput = document.getElementById('file_' + _slot);
+              if (mainInput) { setInputFile(mainInput, file); }
+              _afterPhotoReady(_slot, file, _obj, (data.markers || {})[_slot]);
+              photoRestored++;
+              if (photoRestored === photoCount) {
+                setAutosaveStatus('saved', '✓ 사진 ' + photoRestored + '장 모두 복원');
+                setTimeout(function(){ setAutosaveStatus('', ''); }, 4000);
+              }
+            }).catch(function(err) {
+              console.error('[populate] dataUrlToFile 실패: ' + _slot, err);
+              setAutosaveStatus('error', '⚠ 사진 ' + _slot + ' 복원 실패');
+              _afterPhotoReady(_slot, null, _obj, (data.markers || {})[_slot]);
+            });
+          })(slot, obj);
+        } else {
+          console.warn('[populate] ' + slot + ' photo_id/dataUrl 모두 없음. obj=', obj);
+        }
+      } catch (e) { console.warn('[populate] photo restore err', slot, e); }
+    });
+  }
+  // v91 — data.markers는 _afterPhotoReady에서 슬롯별로 병합 처리됨
+  if (data.markers || data.offsets) {
+    setTimeout(function() {
+      if (data.markers) {
+        Object.keys(data.markers).forEach(function(n){ try{ showControls(n); }catch(e){} try{ drawMarkers(n); }catch(e){} });
+      }
+      if (data.offsets) {
+        Object.keys(data.offsets).forEach(function(n){ var inp=document.querySelector('input[data-offset="'+n+'"]'); if (inp) inp.value = data.offsets[n]; });
+      }
+    }, 100);
+  }
+}
+
+function saveReport() {
+  var name = document.getElementById('report-name') ? document.getElementById('report-name').value : '';
+  if (!name || !name.trim()) { alert('보고서 이름을 입력하세요.'); return; }
+  var data = collectFormData();
+  var fd = new FormData();
+  fd.append('name', name); fd.append('site_name', SITE_NAME);
+  fd.append('data_json', JSON.stringify(data)); fd.append('is_draft', '0');
+  fetch('/api/save', { method:'POST', body: fd }).then(function(r){return r.json();}).then(function(res){
+    if (res && res.id) alert('저장 완료'); else alert('저장 실패: ' + (res && res.error || 'unknown'));
+  }).catch(function(e){ alert('저장 오류: ' + e); });
+}
+
+function newReport() { if (!confirm('현재 내용을 초기화하고 새 보고서를 작성?')) return; location.reload(); }
+function openLoadDialog() { var dlg = document.getElementById('load-dialog'); if (dlg) dlg.style.display='block'; loadReports(); }
+function closeLoadDialog() { var dlg = document.getElementById('load-dialog'); if (dlg) dlg.style.display='none'; }
+
+function loadReports() {
+  var list = document.getElementById('load-list'); if (!list) return;
+  list.innerHTML = '<div class="load-empty">로딩 중...</div>';
+  fetch('/api/list?site_name='+encodeURIComponent(SITE_NAME)).then(function(r){return r.json();}).then(function(res){
+    list.innerHTML = ''; var reports = (res && res.reports) || [];
+    if (reports.length === 0) { list.innerHTML = '<div class="load-empty">저장된 보고서가 없습니다.</div>'; return; }
+    reports.forEach(function(rep){
+      var div = document.createElement('div'); div.className='l-item';
+      var nm = document.createElement('span'); nm.className='l-name'; nm.textContent=rep.name;
+      div.appendChild(nm);
+      var del = document.createElement('button'); del.type='button'; del.className='l-del'; del.textContent='삭제';
+      del.onclick = function(ev){ ev.stopPropagation(); if(confirm('삭제?')) deleteReport(rep.id); };
+      div.appendChild(del); div.onclick = function(){ loadReport(rep.id); };
+      list.appendChild(div);
+    });
+  }).catch(function(e){ list.innerHTML='<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
+}
+
+function loadReport(reportId) {
+  fetch('/api/load/'+reportId).then(function(r){return r.json();}).then(function(res){
+    if (res && res.data_json) {
+      try { var data = (typeof res.data_json==='string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
+      catch(e){ alert('불러오기 실패: '+e); }
+    } else { alert('불러오기 실패'); }
+  }).catch(function(e){ alert('불러오기 오류: '+e); });
+}
+
+function deleteReport(reportId) {
+  if (!confirm('정말 삭제할까요?')) return;
+  fetch('/api/delete/'+reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
+}
+
+function confirmDeleteCurrent(){ alert('저장된 보고서를 먼저 선택하세요.'); }
+function confirmNewReport(){ if (confirm('현재 내용을 초기화하시겠습니까?')) location.reload(); }
+function togglePdfPagesAll(){ var cbs = document.querySelectorAll('.pdf-page-cb input[type=checkbox]'); var all = Array.from(cbs).every(function(c){return c.checked;}); cbs.forEach(function(c){c.checked = !all;}); }
+
+// collectFormData stub — 저장 시 폼 데이터 직렬화
+function collectFormData() {
+  var form = document.getElementById('report-form');
+  var data = {};
+  if (!form) return data;
+  Array.from(form.querySelectorAll('input[type="text"], input[type="date"], select, textarea')).forEach(function(el){
+    if (el.name) data[el.name] = el.value;
+  });
+  Array.from(form.querySelectorAll('input[type="checkbox"]')).forEach(function(el){
+    if (el.name) data[el.name] = el.checked ? '1' : '';
+  });
+  data.markers = window._flirDecoded || {};
+  return data;
+}
+</script>
+</body>
+</html>
