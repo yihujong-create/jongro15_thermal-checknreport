@@ -623,6 +623,20 @@ body{padding-bottom:42px !important;}
 <td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[1] }}</td>
 <td style="border:1px solid #999;padding:6px;background:#fafafa;">{{ row[2] }}</td>
 <td style="border:1px solid #999;padding:6px;font-size:11px;">{{ row[3] }}</td>
+{% if loop.index == 2 %}
+<td rowspan="3" style="border:1px solid #999;padding:2px;vertical-align:middle;">
+  <select id="b6_outer_unified" form="report-form" onchange="syncB6Outer(this)" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
+    <option value="">(유지)</option>
+    <option value="O">○</option>
+    <option value="X">X</option>
+    <option value="/">/</option>
+  </select>
+  <input type="hidden" name="b6_r_2" id="b6_r_2_h" form="report-form">
+  <input type="hidden" name="b6_r_3" id="b6_r_3_h" form="report-form">
+  <input type="hidden" name="b6_r_4" id="b6_r_4_h" form="report-form">
+</td>
+{% elif loop.index == 3 or loop.index == 4 %}
+{% else %}
 <td style="border:1px solid #999;padding:2px;">
   <select name="b6_r_{{ loop.index }}" form="report-form" style="width:100%;padding:3px;border:1px solid #ccc;border-radius:3px;font-size:11px;box-sizing:border-box;">
     <option value="">(유지)</option>
@@ -631,8 +645,17 @@ body{padding-bottom:42px !important;}
     <option value="/">/</option>
   </select>
 </td>
+{% endif %}
 </tr>
 {% endfor %}
+<script>
+function syncB6Outer(sel){
+  var v = sel.value;
+  document.getElementById('b6_r_2_h').value = v;
+  document.getElementById('b6_r_3_h').value = v;
+  document.getElementById('b6_r_4_h').value = v;
+}
+</script>
 </tbody></table>
 </div>
 <p style="font-size:11px;color:#666;margin-top:6px;">[비고] 점검결과는 ○(적합), ×(부적합), /(해당없음) 으로 표기</p>
@@ -1940,25 +1963,4 @@ function loadReports() {
       var nm = document.createElement('span'); nm.className='l-name'; nm.textContent=rep.name;
       div.appendChild(nm);
       var del = document.createElement('button'); del.type='button'; del.className='l-del'; del.textContent='삭제';
-      del.onclick = function(ev){ ev.stopPropagation(); if(confirm('삭제?')) deleteReport(rep.id); };
-      div.appendChild(del); div.onclick = function(){ loadReport(rep.id); };
-      list.appendChild(div);
-    });
-  }).catch(function(e){ list.innerHTML='<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
-}
-
-function loadReport(reportId) {
-  fetch('/api/load/'+reportId).then(function(r){return r.json();}).then(function(res){
-    if (res && res.data_json) {
-      try { var data = (typeof res.data_json==='string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
-      catch(e){ alert('불러오기 실패: '+e); }
-    } else { alert('불러오기 실패'); }
-  }).catch(function(e){ alert('불러오기 오류: '+e); });
-}
-
-function deleteReport(reportId) {
-  fetch('/api/delete/'+reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
-}
-</script>
-</body>
-</html>
+      del.onclick = function(ev
