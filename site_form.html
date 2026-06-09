@@ -1029,13 +1029,16 @@ function setInputFile(input, file) {
     var dt = new DataTransfer();
     dt.items.add(file);
     input.files = dt.files;
-  } catch (e) {}
+  } catch (e) { console.error('[setInputFile] failed for input:', input.id, 'err:', e.message); }
 }
 
 function showPreview(name, input) {
+  console.log('[showPreview] called for:', name, 'files:', input.files ? input.files.length : 'none');
   var preview = document.getElementById('preview_' + name);
+  if (!preview) { console.error('[showPreview] preview div not found:', 'preview_'+name); return; }
   if (!input.files || !input.files[0]) { preview.textContent = '선택된 파일 없음'; return; }
   var file = input.files[0];
+  console.log('[showPreview] file:', file.name, file.type, file.size);
   if (!file.type.startsWith('image/')) { preview.textContent = file.name; return; }
   preview.innerHTML = '<span style="font-size:11px;color:#888">처리중...</span>';
   resizeImage(file).then(function(r) {
@@ -2088,13 +2091,21 @@ function populateFormData(data) {
 
 function saveReport() {
   var name = document.getElementById('report-name') ? document.getElementById('report-name').value : '';
-  if (!name || !name.trim()) { alert('보고서 이름을 입력하세요.'); return; }
+  // 이름 없어도 OK — 서버가 자동 생성 (사이트명 + 날짜시간)
   var data = collectFormData();
-  var fd = new FormData();
-  fd.append('name', name); fd.append('site_name', SITE_NAME);
-  fd.append('data_json', JSON.stringify(data)); fd.append('is_draft', '0');
-  fetch('/api/save', { method:'POST', body: fd }).then(function(r){return r.json();}).then(function(res){
-    if (res && res.id) alert('저장 완료'); else alert('저장 실패: ' + (res && res.error || 'unknown'));
+  var payload = {
+    name: (name || '').trim(),
+    site_name: SITE_NAME,
+    data: data,
+    is_draft: 0
+  };
+  fetch('/api/save', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(payload)
+  }).then(function(r){return r.json();}).then(function(res){
+    if (res && res.id) { alert('저장 완료 (ID: ' + res.id + ')'); }
+    else { alert('저장 실패: ' + (res && res.error || 'unknown')); }
   }).catch(function(e){ alert('저장 오류: ' + e); });
 }
 
