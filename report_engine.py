@@ -740,15 +740,23 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
 
     # 교체 매핑
     replacements = {}
+    insp_date_only = ""
     if inspection_date:
         import re as _re
+        # "2026년 06월 03일 14시 00분" → "2026년 06월 03일"
+        m_ = _re.match(r"(20\d{2}년\s*\d{1,2}월\s*\d{1,2}일)", inspection_date)
+        insp_date_only = m_.group(1) if m_ else inspection_date
+        # 원본 PDF의 점검일 span 위치 기록 (replacements에 빈값 넣지 않고 직접 그리기)
+        _insp_bbox = None
         for block in page.get_text("dict")["blocks"]:
             if "lines" not in block: continue
             for line in block["lines"]:
                 for span in line["spans"]:
                     t = span["text"].strip()
                     if _re.fullmatch(r"20\d{2}년\s*\d{1,2}월\s*\d{1,2}일", t):
-                        replacements[t] = inspection_date
+                        _insp_bbox = (span["bbox"], span["size"]); break
+                if _insp_bbox: break
+            if _insp_bbox: break
     if year_month:
         new_ym = _normalize_ym(year_month)
         import re as _re
@@ -765,11 +773,18 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
     while len(use_results) < 10: use_results.append(None)
     for i, orig in enumerate(DEFAULT_P2_ITEMS):
         new = use_items[i]
-        if new and new.strip() and new != orig:
+        if new is None: continue
+        # 공백/빈 문자열 → redact (PDF에서 항목 숨김)
+        if not new.strip():
+            replacements[orig] = " "
+        elif new != orig:
             replacements[orig] = new
     for i, orig in enumerate(DEFAULT_P2_RESULTS):
         new = use_results[i]
-        if new and new.strip() and new != orig:
+        if new is None: continue
+        if not new.strip():
+            replacements[orig] = " "
+        elif new != orig:
             replacements[orig] = new
 
     # 1) PDF spans을 순회하면서 redact + PIL로 교체 텍스트 그리기
@@ -779,14 +794,34 @@ def render_p2(site_name: str, year_month: str = "", inspection_date: str = "",
             for span in line["spans"]:
                 orig = span["text"]
                 new_text = replacements.get(orig) or replacements.get(orig.strip())
-                if not new_text or new_text == orig.strip(): continue
+                if new_text is None: continue
+                # 빈 문자열/공백이면 redact만 (덮어쓰기, 새 텍스트 안 그림)
                 bb = span["bbox"]
                 size_pt = span["size"]
                 pad = 2
+                if not new_text.strip():
+                    d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                 bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+                    continue
+                if new_text == orig.strip(): continue
                 d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
                              bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
                 size_px = int(size_pt * sy * 0.95)
                 _draw_mixed(d, bb[0]*sx, bb[1]*sy - 1, new_text, size_px)
+    # 점검일 — 시간 제거 + 셀 내 중앙정렬
+    if insp_date_only and _insp_bbox:
+        bb, size_pt = _insp_bbox
+        pad = 2
+        d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                     bb[2]*sx + pad, bb[3]*sy + pad], fill="white")
+        size_px = int(size_pt * sy * 0.95)
+        try:
+            text_w = tw(insp_date_only, False, size_pt)
+            cx_target = (bb[0] + bb[2]) / 2 * sx
+            draw_x = cx_target - text_w / 2
+        except Exception:
+            draw_x = bb[0] * sx
+        _draw_mixed(d, draw_x, bb[1]*sy - 1, insp_date_only, size_px)
 
     # 2) 추가 항목 7~10 (items) / 결과 7-1~10-1 (results)
     items_x_pdf = 192.5
@@ -868,7 +903,10 @@ def render_p3(site_name: str, items: list = None) -> "Image.Image":
             for i, orig in enumerate(defaults):
                 if i < len(items):
                     new = items[i]
-                    if new and new.strip() and new.strip() != orig:
+                    if new is None: continue
+                    if not new.strip():
+                        replacements[orig] = " "
+                    elif new.strip() != orig:
                         replacements[orig] = new.strip()
             if replacements:
                 for block in page.get_text("dict")["blocks"]:
@@ -878,11 +916,17 @@ def render_p3(site_name: str, items: list = None) -> "Image.Image":
                             orig = span["text"]
                             new_text = (replacements.get(orig) or
                                         replacements.get(orig.strip()))
-                            if not new_text or new_text == orig.strip():
-                                continue
+                            if new_text is None: continue
                             bb = span["bbox"]
                             size_pt = span["size"]
                             pad = 2
+                            # 빈/공백이면 redact 만 (체크박스 해제 시 PDF 비표시)
+                            if not new_text.strip():
+                                d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
+                                             bb[2]*sx + pad, bb[3]*sy + pad],
+                                            fill="white")
+                                continue
+                            if new_text == orig.strip(): continue
                             d.rectangle([bb[0]*sx - pad, bb[1]*sy - pad,
                                          bb[2]*sx + pad, bb[3]*sy + pad],
                                         fill="white")
