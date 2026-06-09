@@ -1893,73 +1893,65 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
                         include_b1: bool = True, include_b2: bool = True,
                         include_b4: bool = True, include_b5: bool = True, include_b6: bool = True,
                         include_b9: bool = False, include_b10: bool = False, include_b11: bool = False):
-    pages = []
-    if include_cover:
-        try: pages.append(render_cover(site_name, year_month))
-        except Exception as _e: print(f"[WARN] cover: {_e}")
-    if include_p2:
-        try: pages.append(render_p2(site_name, year_month=year_month, inspection_date=inspection_date, items=p2_items, results=p2_results))
-        except Exception as _e: print(f"[WARN] p2: {_e}")
-    if include_p3:
-        try: pages.append(render_p3(site_name, items=p3_items))
-        except Exception as _e: print(f"[WARN] p3: {_e}")
-    if include_p4 or include_b1:
-        try: pages.append(render_p4(site_name))
-        except Exception as _e: print(f"[WARN] b1: {_e}")
-    if include_b2:
-        try: pages.append(render_b2(site_name, results=b2_results, actions=b2_actions))
-        except Exception as _e: print(f"[WARN] b2: {_e}")
-    if include_b3:
-        try: pages.append(render_b3(site_name, b3_run or {}, b3_chk or {}))
-        except Exception as _e: print(f"[WARN] b3: {_e}")
-    if include_b4:
-        try: pages.append(render_b4(site_name, voltages=b4_voltages, currents=b4_currents, results=b4_results))
-        except Exception as _e: print(f"[WARN] b4: {_e}")
-    if include_b5:
-        try: pages.append(render_b5(site_name, currents=b5_currents, states=b5_states))
-        except Exception as _e: print(f"[WARN] b5: {_e}")
-        if site_name in B5P2_STRUCTURE:
-            try: pages.append(render_b5p2(site_name, currents=b5p2_currents, states=b5p2_states))
-            except Exception as _e: print(f"[WARN] b5p2: {_e}")
-    if include_b6:
-        try: pages.append(render_b6(site_name, results=b6_results, opinion=b6_opinion))
-        except Exception as _e: print(f"[WARN] b6: {_e}")
-    if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
-        try: pages.append(render_b9(site_name, overrides=b9_overrides, photo_paths=b9_photos))
-        except Exception as _e: print(f"[WARN] b9: {_e}")
-    if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
-        try: pages.append(render_b10(site_name, overrides=b10_overrides, photo_paths=b10_photos))
-        except Exception as _e: print(f"[WARN] b10: {_e}")
-    if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
-        try: pages.append(render_b11(site_name, overrides=b11_overrides))
-        except Exception as _e: print(f"[WARN] b11: {_e}")
-    page_num = 1
-    for i, blk in enumerate(blocks):
-        seed = hash(site_name) % 1000 + i * 10
-        photos_for_block = photos.get(i, {}) if isinstance(photos, dict) else {}
-        pages.append(render_b7(blk, page_num, photos_for_block, seed=seed))
-        page_num += 1
-    for items in b8_pages:
-        pages.append(render_b8(items, page_num))
-        page_num += 1
-    if not pages: raise ValueError("PDF empty")
+    """페이지를 한 장씩 렌더 → 즉시 PDF embed → 메모리 해제 (Render Free 메모리 절감)."""
     import gc, io as _io, fitz as _fitz
     A4_PX = (1654, 2339)
     pdf_doc = _fitz.open()
-    for idx in range(len(pages)):
-        p = pages[idx]
-        rgb = p.convert("RGB")
+
+    def _embed_page(pil_img):
+        rgb = pil_img.convert("RGB")
         if rgb.size != A4_PX: rgb = rgb.resize(A4_PX, Image.LANCZOS)
         buf = _io.BytesIO()
         rgb.save(buf, format="JPEG", quality=80, optimize=True)
         jpg_bytes = buf.getvalue()
         del buf, rgb
-        new_page = pdf_doc.new_page(width=595, height=842)
-        new_page.insert_image(_fitz.Rect(0, 0, 595, 842), stream=jpg_bytes)
+        np = pdf_doc.new_page(width=595, height=842)
+        np.insert_image(_fitz.Rect(0, 0, 595, 842), stream=jpg_bytes)
         del jpg_bytes
-        pages[idx] = None
         gc.collect()
-    pages.clear()
+
+    def _safe(callable_, *args, **kwargs):
+        try:
+            p = callable_(*args, **kwargs)
+            if p is not None:
+                _embed_page(p)
+                del p
+                gc.collect()
+        except Exception as _e:
+            print(f"[WARN] {callable_.__name__}: {_e}")
+
+    if include_cover: _safe(render_cover, site_name, year_month)
+    if include_p2:    _safe(render_p2, site_name, year_month=year_month, inspection_date=inspection_date, items=p2_items, results=p2_results)
+    if include_p3:    _safe(render_p3, site_name, items=p3_items)
+    if include_p4 or include_b1: _safe(render_p4, site_name)
+    if include_b2:    _safe(render_b2, site_name, results=b2_results, actions=b2_actions)
+    if include_b3:    _safe(render_b3, site_name, b3_run or {}, b3_chk or {})
+    if include_b4:    _safe(render_b4, site_name, voltages=b4_voltages, currents=b4_currents, results=b4_results)
+    if include_b5:
+        _safe(render_b5, site_name, currents=b5_currents, states=b5_states)
+        if site_name in B5P2_STRUCTURE:
+            _safe(render_b5p2, site_name, currents=b5p2_currents, states=b5p2_states)
+    if include_b6:    _safe(render_b6, site_name, results=b6_results, opinion=b6_opinion)
+    if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
+        _safe(render_b9, site_name, overrides=b9_overrides, photo_paths=b9_photos)
+    if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
+        _safe(render_b10, site_name, overrides=b10_overrides, photo_paths=b10_photos)
+    if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
+        _safe(render_b11, site_name, overrides=b11_overrides)
+
+    page_num = 1
+    for i, blk in enumerate(blocks):
+        seed = hash(site_name) % 1000 + i * 10
+        photos_for_block = photos.get(i, {}) if isinstance(photos, dict) else {}
+        _safe(render_b7, blk, page_num, photos_for_block, seed=seed)
+        page_num += 1
+    for items in b8_pages:
+        _safe(render_b8, items, page_num)
+        page_num += 1
+
+    if pdf_doc.page_count == 0:
+        pdf_doc.close()
+        raise ValueError("PDF empty")
     pdf_doc.save(out_path, deflate=True, garbage=4, clean=True)
     pdf_doc.close()
     gc.collect()

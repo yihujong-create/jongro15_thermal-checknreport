@@ -802,13 +802,14 @@ function syncB6Outer(sel){
 </div>
 <p style="font-size:11px;color:#666;margin-top:6px;">- 접속반 채널별로 측정</p>
 <h3 class="b3-h3" style="margin-top:12px;">사진 (1장)</h3>
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;max-width:600px;">
-  <label class="photo-input" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
-    <span>붙임9 사진</span>
-    <input type="file" id="file_b9_photo" name="b9_photo" accept="image/*" onchange="showPreview('b9_photo', this)">
-    <div id="preview_b9_photo" style="border:1px dashed #ccc;border-radius:4px;padding:6px;min-height:80px;font-size:11px;color:#888;text-align:center;">선택된 파일 없음</div>
-  </label>
-</div>
+<table class="b8-slots-grid" style="width:100%;table-layout:fixed;border-collapse:separate;border-spacing:6px;">
+<tbody><tr>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b9_caption" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b9_photo', '붙임9 사진') }}
+</td>
+<td style="width:75%;"></td>
+</tr></tbody></table>
 </div>
 </div>
 </section>
@@ -844,23 +845,22 @@ function syncB6Outer(sel){
 </tbody></table>
 </div>
 <h3 class="b3-h3" style="margin-top:12px;">사진 (3장)</h3>
-<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
-  <label class="photo-input" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
-    <span>붙임10 사진 1</span>
-    <input type="file" id="file_b10_photo_1" name="b10_photo_1" accept="image/*" onchange="showPreview('b10_photo_1', this)">
-    <div id="preview_b10_photo_1" style="border:1px dashed #ccc;border-radius:4px;padding:6px;min-height:80px;font-size:11px;color:#888;text-align:center;">선택된 파일 없음</div>
-  </label>
-  <label class="photo-input" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
-    <span>붙임10 사진 2</span>
-    <input type="file" id="file_b10_photo_2" name="b10_photo_2" accept="image/*" onchange="showPreview('b10_photo_2', this)">
-    <div id="preview_b10_photo_2" style="border:1px dashed #ccc;border-radius:4px;padding:6px;min-height:80px;font-size:11px;color:#888;text-align:center;">선택된 파일 없음</div>
-  </label>
-  <label class="photo-input" style="display:flex;flex-direction:column;gap:4px;font-size:11px;">
-    <span>붙임10 사진 3</span>
-    <input type="file" id="file_b10_photo_3" name="b10_photo_3" accept="image/*" onchange="showPreview('b10_photo_3', this)">
-    <div id="preview_b10_photo_3" style="border:1px dashed #ccc;border-radius:4px;padding:6px;min-height:80px;font-size:11px;color:#888;text-align:center;">선택된 파일 없음</div>
-  </label>
-</div>
+<table class="b8-slots-grid" style="width:100%;table-layout:fixed;border-collapse:separate;border-spacing:6px;">
+<tbody><tr>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_1" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_1', '붙임10 사진 1') }}
+</td>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_2" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_2', '붙임10 사진 2') }}
+</td>
+<td class="b8-slot" style="width:25%;vertical-align:top;padding:4px;border:1px dotted #ddd;box-sizing:border-box;">
+<label class="b8-caption" style="display:block;font-size:11px;">캡션<input type="text" name="b10_caption_3" form="report-form" value="" style="width:100%;box-sizing:border-box;"></label>
+{{ photo_input_b8('b10_photo_3', '붙임10 사진 3') }}
+</td>
+<td style="width:25%;"></td>
+</tr></tbody></table>
 </div>
 </div>
 </section>
