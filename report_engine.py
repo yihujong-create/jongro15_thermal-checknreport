@@ -1932,22 +1932,25 @@ def generate_report_pdf(site_name, blocks, photos, b8_pages, out_path,
         if site_name in B5P2_STRUCTURE:
             _safe(render_b5p2, site_name, currents=b5p2_currents, states=b5p2_states)
     if include_b6:    _safe(render_b6, site_name, results=b6_results, opinion=b6_opinion)
-    if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
-        _safe(render_b9, site_name, overrides=b9_overrides, photo_paths=b9_photos)
-    if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
-        _safe(render_b10, site_name, overrides=b10_overrides, photo_paths=b10_photos)
-    if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
-        _safe(render_b11, site_name, overrides=b11_overrides)
 
+    # 붙임7 (열화상 분포)
     page_num = 1
     for i, blk in enumerate(blocks):
         seed = hash(site_name) % 1000 + i * 10
         photos_for_block = photos.get(i, {}) if isinstance(photos, dict) else {}
         _safe(render_b7, blk, page_num, photos_for_block, seed=seed)
         page_num += 1
+    # 붙임8 (점검사진대지)
     for items in b8_pages:
         _safe(render_b8, items, page_num)
         page_num += 1
+    # 붙임9/10/11 (비축/티튜브)
+    if include_b9 and os.path.exists(_template_pdf_path("b9", site_name)):
+        _safe(render_b9, site_name, overrides=b9_overrides, photo_paths=b9_photos)
+    if include_b10 and os.path.exists(_template_pdf_path("b10", site_name)):
+        _safe(render_b10, site_name, overrides=b10_overrides, photo_paths=b10_photos)
+    if include_b11 and os.path.exists(_template_pdf_path("b11", site_name)):
+        _safe(render_b11, site_name, overrides=b11_overrides)
 
     if pdf_doc.page_count == 0:
         pdf_doc.close()

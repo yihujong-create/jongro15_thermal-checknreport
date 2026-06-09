@@ -1029,13 +1029,16 @@ function setInputFile(input, file) {
     var dt = new DataTransfer();
     dt.items.add(file);
     input.files = dt.files;
-  } catch (e) {}
+  } catch (e) { console.error('[setInputFile] failed for input:', input.id, 'err:', e.message); }
 }
 
 function showPreview(name, input) {
+  console.log('[showPreview] called for:', name, 'files:', input.files ? input.files.length : 'none');
   var preview = document.getElementById('preview_' + name);
+  if (!preview) { console.error('[showPreview] preview div not found:', 'preview_'+name); return; }
   if (!input.files || !input.files[0]) { preview.textContent = '선택된 파일 없음'; return; }
   var file = input.files[0];
+  console.log('[showPreview] file:', file.name, file.type, file.size);
   if (!file.type.startsWith('image/')) { preview.textContent = file.name; return; }
   preview.innerHTML = '<span style="font-size:11px;color:#888">처리중...</span>';
   resizeImage(file).then(function(r) {
@@ -2113,4 +2116,45 @@ function loadReports() {
       var nm = document.createElement('span'); nm.className='l-name'; nm.textContent=rep.name;
       div.appendChild(nm);
       var del = document.createElement('button'); del.type='button'; del.className='l-del'; del.textContent='삭제';
-      del.onclick = function(ev
+      del.onclick = function(ev){ ev.stopPropagation(); if(confirm('삭제?')) deleteReport(rep.id); };
+      div.appendChild(del); div.onclick = function(){ loadReport(rep.id); };
+      list.appendChild(div);
+    });
+  }).catch(function(e){ list.innerHTML='<div class="load-empty">목록 로딩 실패</div>'; console.error(e); });
+}
+
+function loadReport(reportId) {
+  fetch('/api/load/'+reportId).then(function(r){return r.json();}).then(function(res){
+    if (res && res.data_json) {
+      try { var data = (typeof res.data_json==='string') ? JSON.parse(res.data_json) : res.data_json; populateFormData(data); closeLoadDialog(); }
+      catch(e){ alert('불러오기 실패: '+e); }
+    } else { alert('불러오기 실패'); }
+  }).catch(function(e){ alert('불러오기 오류: '+e); });
+}
+
+function deleteReport(reportId) {
+  if (!confirm('정말 삭제할까요?')) return;
+  fetch('/api/delete/'+reportId, { method:'DELETE' }).then(function(r){return r.json();}).then(function(){ loadReports(); });
+}
+
+function confirmDeleteCurrent(){ alert('저장된 보고서를 먼저 선택하세요.'); }
+function confirmNewReport(){ if (confirm('현재 내용을 초기화하시겠습니까?')) location.reload(); }
+function togglePdfPagesAll(){ var cbs = document.querySelectorAll('.pdf-page-cb input[type=checkbox]'); var all = Array.from(cbs).every(function(c){return c.checked;}); cbs.forEach(function(c){c.checked = !all;}); }
+
+// collectFormData stub — 저장 시 폼 데이터 직렬화
+function collectFormData() {
+  var form = document.getElementById('report-form');
+  var data = {};
+  if (!form) return data;
+  Array.from(form.querySelectorAll('input[type="text"], input[type="date"], select, textarea')).forEach(function(el){
+    if (el.name) data[el.name] = el.value;
+  });
+  Array.from(form.querySelectorAll('input[type="checkbox"]')).forEach(function(el){
+    if (el.name) data[el.name] = el.checked ? '1' : '';
+  });
+  data.markers = window._flirDecoded || {};
+  return data;
+}
+</script>
+</body>
+</html>
